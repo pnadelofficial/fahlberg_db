@@ -1,7 +1,8 @@
 import sqlite3
+import os
 
 class DatabaseManager:
-    def __init__(self, path='db.sql'):
+    def __init__(self, path=os.path.join('sensitive_data_for_fahlberg_interview_db','db.sql')):
         self.path = path
         self.conn = sqlite3.connect(path)
         self.cur = self.conn.cursor()

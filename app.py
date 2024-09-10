@@ -2,10 +2,11 @@ import streamlit as st
 from sql_utils import DatabaseManager
 from auth_utils import Authentication
 from datetime import datetime
+import os
 
 st.title('Fahlberg Interview Database')
 
-auth = Authentication('config.yaml')
+auth = Authentication(os.path.join('sensitive_data_for_fahlberg_interview_db', 'config.yaml'))
 auth.login()
 auth.display()
 
