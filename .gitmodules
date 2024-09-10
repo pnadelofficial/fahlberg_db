@@ -1,0 +1,3 @@
+[submodule "sensitive_data_for_fahlberg_interview_db"]
+	path = sensitive_data_for_fahlberg_interview_db
+	url = https://github.com/pnadelofficial/sensitive_data_for_fahlberg_interview_db.git
