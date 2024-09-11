@@ -10,6 +10,7 @@ def setup_submodule():
     print('platform:', platform.processor())   
     if not platform.processor():
         github_pat = st.secrets['github']['github_pat']
+        print('github_pat:', github_pat)
         subprocess.run(["git", "config", "--global", "credential.helper", "store"])
         with open(os.path.expanduser("~/.git-credentials"), "w") as f:
             f.write(f"https://oauth2:{github_pat}@github.com")
