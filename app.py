@@ -14,6 +14,7 @@ def setup_submodule():
         subprocess.run(["git", "config", "--global", "credential.helper", "store"])
         with open(os.path.expanduser("~/.git-credentials"), "w") as f:
             f.write(f"https://oauth2:{github_pat}@github.com")
+        subprocess.run(['git', 'clone', 'https://github.com/pnadelofficial/sensitive_data_for_fahlberg_interview_db.git'])
         print(subprocess.run(['ls', '-a', 'sensitive_data_for_fahlberg_interview_db']))
         if not os.path.exists('sensitive_data_for_fahlberg_interview_db'):
             subprocess.run(["git", "submodule", "update", "--init", "--recursive"])
