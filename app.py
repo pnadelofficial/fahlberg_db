@@ -8,7 +8,7 @@ import platform
 
 def setup_submodule():
     print('platform:', platform.processor())   
-    if os.getenv('STREAMLIT_CLOUD'):
+    if not platform.processor():
         github_pat = st.secrets['github']['github_pat']
         subprocess.run(["git", "config", "--global", "credential.helper", "store"])
         with open(os.path.expanduser("~/.git-credentials"), "w") as f:
