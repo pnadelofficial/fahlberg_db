@@ -26,3 +26,4 @@ class DatabaseManager:
         query = f"DELETE FROM {table} WHERE case_no = ?"
         self.cur.execute(query, (case_no,))
         self.conn.commit()
+        

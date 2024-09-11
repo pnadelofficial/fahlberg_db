@@ -1,23 +1,11 @@
 import streamlit as st
 from sql_utils import DatabaseManager
-from auth_utils import Authentication
+from auth_utils import Authentication, setup_submodule
 from datetime import datetime
 import os
-import subprocess
-import platform
 
-def setup_submodule():
-    if not platform.processor():
-        github_pat = st.secrets['github']['github_pat']
-        subprocess.run(["git", "config", "--global", "credential.helper", "store"])
-        with open(os.path.expanduser("~/.git-credentials"), "w") as f:
-            f.write(f"https://oauth2:{github_pat}@github.com")
-        subprocess.run(['git', 'clone', 'https://github.com/pnadelofficial/sensitive_data_for_fahlberg_interview_db.git'])
-        if not os.path.exists('sensitive_data_for_fahlberg_interview_db'):
-            subprocess.run(["git", "submodule", "update", "--init", "--recursive"])
-        else:
-            subprocess.run(["git", "submodule", "update", "--recursive", "--remote"])
-setup_submodule()
+if st.session_state.get('submodule_setup') is None:
+    setup_submodule()
 
 config_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'config.yaml')
 db_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'db.sql')
@@ -28,9 +16,6 @@ auth = Authentication(config_path)
 auth.login()
 auth.display()
 
-@st.cache_resource
-def get_db():
-    return DatabaseManager()
 db = DatabaseManager(path=db_path)
 
 if st.session_state['authentication_status']:
@@ -209,7 +194,7 @@ if st.session_state['authentication_status']:
                 interviewer.remove('Other')
 
             past_dates = ', '.join([str(past_date) for past_date in past_dates])
-            interviewers = ', '.join(interviewer)
+            interviewer = ', '.join(interviewer)
         
         # demographic information
         with st.expander('Demographic Information'):
