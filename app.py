@@ -20,8 +20,8 @@ def setup_submodule():
             subprocess.run(["git", "submodule", "update", "--recursive", "--remote"])
 setup_submodule()
 
-config_path = os.path.join('sensitive-data', 'config.yaml')
-db_path = os.path.join('sensitive-data', 'db.sql')
+config_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'config.yaml')
+db_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'db.sql')
 
 st.title('Fahlberg Interview Database')
 
