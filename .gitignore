@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 notebooks/
 sensitive_data_for_fahlberg_interview_db/
+.streamlit/

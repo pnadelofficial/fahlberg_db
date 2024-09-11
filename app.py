@@ -3,17 +3,35 @@ from sql_utils import DatabaseManager
 from auth_utils import Authentication
 from datetime import datetime
 import os
+import subprocess
+
+def setup_submodule():
+    print(os.getenv('STREAMLIT_CLOUD'))
+    if os.getenv('STREAMLIT_CLOUD'):
+        github_pat = st.secrets['github']['github_pat']
+        subprocess.run(["git", "config", "--global", "credential.helper", "store"])
+        with open(os.path.expanduser("~/.git-credentials"), "w") as f:
+            f.write(f"https://oauth2:{github_pat}@github.com")
+        
+        if not os.path.exists('sensitive_data_for_fahlberg_interview_db'):
+            subprocess.run(["git", "submodule", "update", "--init", "--recursive"])
+        else:
+            subprocess.run(["git", "submodule", "update", "--recursive", "--remote"])
+setup_submodule()
+
+config_path = os.path.join('sensitive-data', 'config.yaml')
+db_path = os.path.join('sensitive-data', 'db.sql')
 
 st.title('Fahlberg Interview Database')
 
-auth = Authentication(os.path.join('sensitive_data_for_fahlberg_interview_db', 'config.yaml'))
+auth = Authentication(config_path)
 auth.login()
 auth.display()
 
 @st.cache_resource
 def get_db():
     return DatabaseManager()
-db = DatabaseManager()
+db = DatabaseManager(path=db_path)
 
 if st.session_state['authentication_status']:
     update_or_add = st.radio('Update or Add Data', ['Add new interviewee', 'Update existing interviewee'])
