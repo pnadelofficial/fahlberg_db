@@ -4,9 +4,10 @@ from auth_utils import Authentication
 from datetime import datetime
 import os
 import subprocess
+import platform
 
 def setup_submodule():
-    print(os.getenv('STREAMLIT_CLOUD'))
+    print('platform:', platform.processor())   
     if os.getenv('STREAMLIT_CLOUD'):
         github_pat = st.secrets['github']['github_pat']
         subprocess.run(["git", "config", "--global", "credential.helper", "store"])
