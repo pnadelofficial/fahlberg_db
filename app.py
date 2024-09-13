@@ -195,20 +195,20 @@ if st.session_state['authentication_status']:
         formality = '',
         types_of_activities = '',
         types_of_violence = '',
-        org_works_in_conflict = '',
+        org_works_in_conflict_zone = '',
         currently_lives_in_conflict = '',
         cur_name_of_conflict = '',
         gang_faction = '',
-        previously_lives_in_conflict = '',
+        pre_lives_in_conflict_zone = '',
         prev_name_of_conflict = '',
         works_in_conflict = '',
         lived_experience_of_violence = '',
         violence_types = '',
-        gang_violence_type = '',
-        random_crime_type = '',
-        intimate_violence_type = '',
-        state_violence_type = '',
-        other_violence_type = ''
+        gang_violence_types = '',
+        random_crime_types = '',
+        intimate_violence_types = '',
+        state_violence_types = '',
+        other_violence_types = ''
         # interview details
         with st.expander('Interivew details'):
             case_no = st.text_input('Case Number from Excel')
