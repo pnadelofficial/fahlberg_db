@@ -11,6 +11,8 @@ class DatabaseManager:
         columns = ', '.join(kwargs.keys())
         placeholders = ', '.join(['?'] * len(kwargs))
         values = tuple(kwargs.values())
+        for v in values:
+            print(v, type(v))
         query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
         self.cur.execute(query, values)
         self.conn.commit()
@@ -26,4 +28,3 @@ class DatabaseManager:
         query = f"DELETE FROM {table} WHERE case_no = ?"
         self.cur.execute(query, (case_no,))
         self.conn.commit()
-        
