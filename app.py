@@ -205,7 +205,7 @@ if st.session_state['authentication_status']:
         lived_experience_of_violence = '',
         violence_types = '',
         gang_violence_types = '',
-        random_crime_types = '',
+        random_violence_types = '',
         intimate_violence_types = '',
         state_violence_types = '',
         other_violence_types = ''
