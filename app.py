@@ -170,7 +170,45 @@ if st.session_state['authentication_status']:
             st.error('No data found for this case number')
     else:
         st.subheader('Add Interviewee Data')
-        
+        case_no = '',
+        date = '',
+        pseudonym = '',
+        recorded = '',
+        consent = '',
+        partial_consent = '',
+        past_interviews = '',
+        past_dates = '',
+        your_name = '',
+        interviewer = '',
+        age_range = '',
+        gender = '',
+        country = '',
+        profession_type = '',
+        professional_title = '',
+        works_in_gov = '',
+        geographic_level = '',
+        sector = '',
+        works_in_org = '',
+        country_of_organization = '',
+        geographic_reach = '',
+        years_of_operation = '',
+        formality = '',
+        types_of_activities = '',
+        types_of_violence = '',
+        org_works_in_conflict = '',
+        currently_lives_in_conflict = '',
+        cur_name_of_conflict = '',
+        gang_faction = '',
+        previously_lives_in_conflict = '',
+        prev_name_of_conflict = '',
+        works_in_conflict = '',
+        lived_experience_of_violence = '',
+        violence_types = '',
+        gang_violence_type = '',
+        random_crime_type = '',
+        intimate_violence_type = '',
+        state_violence_type = '',
+        other_violence_type = ''
         # interview details
         with st.expander('Interivew details'):
             case_no = st.text_input('Case Number from Excel')
