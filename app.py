@@ -166,6 +166,7 @@ if st.session_state['authentication_status']:
                     state_violence_type=state_violence_types,
                     other_violence_type=other_violence_types
                 )
+                st.success('Interviewee data updated successfully')
         else:
             st.error('No data found for this case number')
     else:
@@ -225,7 +226,7 @@ if st.session_state['authentication_status']:
             for i in range(past_interviews):
                 past_date = st.date_input(f'Date of Interview {i+1}', key=i)
                 past_dates.append(past_date)
-            your_name = st.text_input('Your Name')
+            your_name = st.text_input('Your name')
             interviewer = st.multiselect('Interviewer', ["Anjuli","Kathy","Laura","Justin","Other"]) # db side, add in other to write in
             if 'Other' in interviewer:
                 interviewer.append(st.text_input('Other Interviewer'))
@@ -235,16 +236,16 @@ if st.session_state['authentication_status']:
             interviewer = ', '.join(interviewer)
         
         # demographic information
-        with st.expander('Demographic Information'):
-            age_range = st.selectbox('Age Range', ['Less than 18', '18-29', '30-59', '60+'])
+        with st.expander('Demographic information'):
+            age_range = st.selectbox('Age range', ['Less than 18', '18-29', '30-59', '60+'])
             gender = st.selectbox('Gender', ['Male', 'Female', 'Trans', 'Non-binary'])
             country = st.selectbox('Country', ['Honduras', 'El Salvador', 'US', 'Other'])
         
         # professional information
-        with st.expander('Professional Information'):
-            profession_type = st.multiselect('Profession Type', ['Transportation Sector', 'Small business', 'College student or Professor', 'NGO Worker/Volunteer', 'Affliation with the government', 'Other'])
+        with st.expander('Professional information'):
+            profession_type = st.multiselect('Profession type', ['Transportation sector', 'Small business', 'College student or Professor', 'NGO Worker/Volunteer', 'Affliation with the government', 'Other'])
             profession_type = ', '.join(profession_type)
-            professional_title = st.text_input('Professional Title')
+            professional_title = st.text_input('Professional title')
             st.divider()
 
             works_gov = st.checkbox('Works for Government')
@@ -294,7 +295,7 @@ if st.session_state['authentication_status']:
                     intimate_violence_type = st.multiselect('Type of intimate violence', ['Sexual assault', 'IPV', 'Violence against LGBTQ', 'Other'])
                     intimate_violence_types = ', '.join(intimate_violence_type)
                 if 'State Violence' in violence_type:
-                    state_violence_type = st.multiselect('Type of state violence', ['Far of detention', 'Abritrary detention of close kin', 'Police violence', 'Violence in prison', 'Political repression', 'Other'])
+                    state_violence_type = st.multiselect('Type of state violence', ['Fear of detention', 'Abritrary detention of close kin', 'Police violence', 'Violence in prison', 'Political repression', 'Other'])
                     state_violence_types = ', '.join(state_violence_type)
                 if 'Other' in violence_type:
                     other_violence_type = st.text_input('Other Violence Type')

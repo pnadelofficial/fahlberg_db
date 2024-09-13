@@ -163,3 +163,5 @@ cython_debug/
 notebooks/
 sensitive_data_for_fahlberg_interview_db/
 .streamlit/
+fields_to_translate.md
+fields_to_translate.pdf
