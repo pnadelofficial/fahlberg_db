@@ -16,7 +16,7 @@ class Authentication:
             config['cookie']['name'],
             config['cookie']['key'],
             config['cookie']['expiry_days'],
-            config['pre-authorized']
+            # config['pre-authorized']
         )
         
     def login(self):
