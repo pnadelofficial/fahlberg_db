@@ -212,7 +212,7 @@ if st.session_state['authentication_status']:
         other_violence_types = ''
         # interview details
         with st.expander('Detalles de la entrevista'):
-            case_no = st.text_input('Case number from Excel')
+            case_no = st.text_input('Número de caso en Excel')
             date = st.date_input("Fecha de hoy")
             pseudonym = st.text_input('Seudónimo')
             recorded = st.checkbox('Grabación')
