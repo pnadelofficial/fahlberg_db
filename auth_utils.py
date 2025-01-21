@@ -25,7 +25,7 @@ class Authentication:
     def display(self):
         if st.session_state['authentication_status']:
             self.authenticator.logout()
-            st.write(f'Welcome *{st.session_state["name"]}*')
+            st.write(f'Bienvenido/a *{st.session_state["name"]}*') # my own
         elif st.session_state['authentication_status'] is False:
             st.error('Username/password is incorrect')
         elif st.session_state['authentication_status'] is None:

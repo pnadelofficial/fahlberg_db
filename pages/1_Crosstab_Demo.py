@@ -21,9 +21,9 @@ db = DatabaseManager(path=db_path)
 
 if st.session_state['authentication_status']:
     df = pd.read_sql_query('SELECT * FROM interviewee', db.conn)
-    column_a = st.selectbox('Select column A', df.columns, index=None, format_func=lambda x: x.replace('_', ' ').title())
+    column_a = st.selectbox('Seleccione columna A', df.columns, index=None, format_func=lambda x: x.replace('_', ' ').title())
     if column_a:
-        column_b = st.selectbox('Select column B', list(set(df.columns)-{column_a}), index=None, format_func=lambda x: x.replace('_', ' ').title())
+        column_b = st.selectbox('Seleccione columna B', list(set(df.columns)-{column_a}), index=None, format_func=lambda x: x.replace('_', ' ').title())
         if column_b:
             crosstab = pd.crosstab(df[column_a], df[column_b])
             fig = px.imshow(crosstab)
