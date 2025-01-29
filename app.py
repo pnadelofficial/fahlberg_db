@@ -42,7 +42,7 @@ if st.session_state['authentication_status']:
                     past_date = st.date_input(f'Fecha de entrevista {i+1}', key=i, value=prev_date)
                     past_dates.append(past_date)
                 past_dates = ', '.join([str(past_date) for past_date in past_dates])
-                your_name = st.text_input('Nombre', value=data[8])
+                your_name = st.selectbox('Local de Entrevista', ['En Persona', 'Virtual'], value=data[8]) # changed from nombre, perhaps issues with the preloaded db
                 poss_interviewers = list(set(["Anjuli","Kathy","Laura","Justin","Other"] + data[9].split(', ')))
                 interviewer = st.multiselect('Entrevistador', poss_interviewers, default=data[9].split(', '))
                 if 'Otro' in interviewer:
@@ -51,8 +51,8 @@ if st.session_state['authentication_status']:
                 interviewer = ', '.join(list(set(interviewer)))
             with st.expander('Información demográfica'):
                 age_range = st.selectbox('Rango de edad', ['Menor de 18 años', '18-29', '30-59', '60+'], index=['Menor de 18 años', '18-29', '30-59', '60+'].index(data[10]))
-                gender = st.selectbox('Género', ['Masculino', 'Femenino', 'Trans', 'No binario'], index=['Masculino', 'Femenino', 'Trans', 'No binario'].index(data[11]))
-                country = st.selectbox('País', ['Honduras', 'El Salvador', 'US', 'Otro'], index=['Honduras', 'El Salvador', 'US', 'Otro'].index(data[12]))
+                gender = st.selectbox('Género', ['Masculino', 'Femenino', 'Trans', 'No binario', 'Desconocido o otro'], index=['Masculino', 'Femenino', 'Trans', 'No binario'].index(data[11]))
+                country = st.multiselect('País', ['Honduras', 'El Salvador', 'US', 'Otro'], index=['Honduras', 'El Salvador', 'US', 'Otro'].index(data[12]))
             with st.expander('Información profesional'):
                 poss_profession_type = list(set(['Sector de Transporte ', 'Negocios pequeño', 'Estudiante universitario o Profesor', 'Trabajador o voluntario de ONG ', 'Afiliación con el gobierno', 'Otro'] + data[13].split(', ')))
                 profession_type = st.multiselect('Tipo de profesiones', poss_profession_type, default=data[13].split(', '))
@@ -64,16 +64,16 @@ if st.session_state['authentication_status']:
                 if works_gov:
                     geographic_level = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], default=data[16].split(', '))
                     geographic_level = ', '.join(geographic_level)
-                    sector = st.selectbox('Sector', ['Servicios sociales', 'Security', 'Otro'], index=['Servicios sociales', 'Security', 'Otro'].index(data[17])) # security not translated
+                    sector = st.selectbox('Sector', ['Servicios sociales', 'Seguridad', 'Otro'], index=['Servicios sociales', 'Seguridad', 'Otro'].index(data[17])) # security not translated
                     st.divider()
                 
                 works_org = st.checkbox('Works for Organization', value=data[18]) # not translated
                 if works_org:
                     country_of_organization = st.multiselect('Country of Organization', ['Honduras', 'El Salvador', 'US', 'Other'], default=data[19].split(', ')) # not translated
                     country_of_organization = ', '.join(country_of_organization)
-                    geographic_reach = st.multiselect('Geographic Reach', ['Nacional', 'Municipal', 'Comunidad'], default=data[20].split(', '))
+                    geographic_reach = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], default=data[20].split(', '))
                     geographic_reach = ', '.join(geographic_reach)
-                    years_of_operation = st.selectbox('Tiempo de trabajo', ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'], index=['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'].index(data[21]))
+                    years_of_operation = st.selectbox('Tiempo que la organización está activa', ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'], index=['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'].index(data[21]))
                     formality = st.selectbox('Formalidad', ['ONG formal', 'Colectivo informal', 'En proceso de formalización'], index=['ONG formal', 'Colectivo informal', 'En proceso de formalización'].index(data[22]))
                     types_of_activities = st.multiselect('Tipos de actividades', ['Defensa de derechos y políticas públicas', "Apoyo a víctimas", "Educación y desarrollo social", "Investigación y periodismo", "Redes y plataformas", "Otro"], default=data[23].split(', '))
                     types_of_activities = ', '.join(types_of_activities)
@@ -226,7 +226,7 @@ if st.session_state['authentication_status']:
             for i in range(past_interviews):
                 past_date = st.date_input(f'Fecha de entrevista {i+1}', key=i)
                 past_dates.append(past_date)
-            your_name = st.text_input('Nombre')
+            your_name = st.selectbox('Local de Entrevista', ['En Persona', 'Virtual']) # changed from nombre, perhaps issues with the preloaded db
             interviewer = st.multiselect('Entrevistador', ["Anjuli","Kathy","Laura","Justin","Otro"]) # db side, add in other to write in
             if 'Otro' in interviewer:
                 interviewer.append(st.text_input('Otro entrevistador'))
@@ -238,7 +238,7 @@ if st.session_state['authentication_status']:
         # demographic information
         with st.expander('Información demográfica'):
             age_range = st.selectbox('Rango de edad', ['Menor de 18 años', '18-29', '30-59', '60+'])
-            gender = st.selectbox('Género', ['Masculino', 'Femenino', 'Trans', 'No binario'])
+            gender = st.selectbox('Género', ['Masculino', 'Femenino', 'Trans', 'No binario', 'Desconocido o otro'])
             country = st.selectbox('País', ['Honduras', 'El Salvador', 'US', 'Otro'])
         
         # professional information
@@ -252,16 +252,16 @@ if st.session_state['authentication_status']:
             if works_gov:
                 geographic_level = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'])
                 geographic_level = ', '.join(geographic_level)
-                sector = st.selectbox('Sector', ['Servicios sociales', 'Security', 'Otro']) # security not translated
+                sector = st.selectbox('Sector', ['Servicios sociales', 'Seguridad', 'Otro']) 
                 st.divider()
 
             works_org = st.checkbox('Works for Organization') # not translated
             if works_org: 
                 country_of_organization = st.multiselect('Country of Organization', ['Honduras', 'El Salvador', 'US', 'Other']) # not translated
                 country_of_organization = ', '.join(country_of_organization)
-                geographic_reach = st.multiselect('Geographic Reach', ['Nacional', 'Municipal', 'Comunidad']) # not translated
+                geographic_reach = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad']) 
                 geographic_reach = ', '.join(geographic_reach)
-                years_of_operation = st.selectbox('Tiempo de trabajo', ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'])
+                years_of_operation = st.selectbox('Tiempo que la organización está activa', ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'])
                 formality = st.selectbox('Formalidad', ['ONG formal', 'Colectivo informal', 'En proceso de formalización'])
                 types_of_activities = st.multiselect('Tipos de actividades', ['Defensa de derechos y políticas públicas', "Apoyo a víctimas", "Educación y desarrollo social", "Investigación y periodismo", "Redes y plataformas", "Otro"])
                 types_of_activities = ', '.join(types_of_activities)
