@@ -216,7 +216,7 @@ if st.session_state['authentication_status']:
             date = st.date_input("Fecha de hoy")
             pseudonym = st.text_input('Seudónimo')
             recorded = st.checkbox('Grabación')
-            consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial'])
+            consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial', 'Yes'])
             if consent == 'Parcial':
                 partial_consent = st.text_area('Parcial consentimiento')
             else:
