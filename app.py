@@ -30,7 +30,7 @@ if st.session_state['authentication_status']:
             with st.expander('Detalles de la entrevista'):
                 pseudonym = st.text_input('Seudónimo', value=data[2])
                 recorded = st.checkbox('Grabación', value=data[3])
-                consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial'], index=['Si', 'No', 'Parcial'].index(data[4]))
+                consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial'], index=['Si', 'No', 'Parcial', 'Yes'].index(data[4]))
                 if consent == 'Parcial':
                     partial_consent = st.text_area('Consentimiento parcial', value=data[5])
                 else:
@@ -216,7 +216,7 @@ if st.session_state['authentication_status']:
             date = st.date_input("Fecha de hoy")
             pseudonym = st.text_input('Seudónimo')
             recorded = st.checkbox('Grabación')
-            consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial', 'Yes'])
+            consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial'])
             if consent == 'Parcial':
                 partial_consent = st.text_area('Parcial consentimiento')
             else:
