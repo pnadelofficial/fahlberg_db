@@ -18,6 +18,22 @@ auth.display()
 
 db = DatabaseManager(path=db_path)
 
+interviewers = [
+    "Anjuli",
+    "Kathy",
+    "Laura",
+    "Justin",
+    "Jennifer Ramirez",
+    "Jazmín Marroquin",
+    "Alejandro Manzur",
+    "José Angel Moreno",
+    "Obed Cruz",
+    "Keren Castellanos",
+    "Estefanía Valladares",
+    "Katherine Martínez",
+    "Other"
+]
+
 if st.session_state['authentication_status']:
     update_or_add = st.radio('Actualizar o agregar datos', ['Agregar nuevo entrevistado', 'Actualizar entrevistado existente'])
     if update_or_add == 'Actualizar entrevistado existente':
@@ -43,7 +59,7 @@ if st.session_state['authentication_status']:
                     past_dates.append(past_date)
                 past_dates = ', '.join([str(past_date) for past_date in past_dates])
                 your_name = st.selectbox('Local de Entrevista', ['En Persona', 'Virtual'], value=data[8]) # changed from nombre, perhaps issues with the preloaded db
-                poss_interviewers = list(set(["Anjuli","Kathy","Laura","Justin","Other"] + data[9].split(', ')))
+                poss_interviewers = list(set(interviewers + data[9].split(', ')))
                 interviewer = st.multiselect('Entrevistador', poss_interviewers, default=data[9].split(', '))
                 if 'Otro' in interviewer:
                     interviewer.append(st.text_input('Otro Entrevistador', value=interviewer[-1]))
