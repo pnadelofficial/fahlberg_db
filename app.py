@@ -31,7 +31,7 @@ interviewers = [
     "Keren Castellanos",
     "Estefanía Valladares",
     "Katherine Martínez",
-    "Other"
+    "Otro"
 ]
 
 if st.session_state['authentication_status']:
