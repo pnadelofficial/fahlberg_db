@@ -39,7 +39,11 @@ if st.session_state['authentication_status']:
     if update_or_add == 'Actualizar entrevistado existente':
         st.subheader('Actualizar entrevistado existente')
         case_no = st.selectbox('Número de caso en Excel', db.cur.execute("SELECT case_no FROM interviewee").fetchall(), format_func=lambda x: x[0]) 
-        case_no = case_no[0]
+        try:
+            case_no = case_no[0]
+        except Exception as e:
+            st.error("No hay datos en la base de datos. Por favor, agregue un nuevo entrevistado primero.")
+            st.stop()
         data = db.cur.execute(f"SELECT * FROM interviewee WHERE case_no={case_no}").fetchone()
         if data:
             st.write('Update the following fields:') # not translated
@@ -243,7 +247,7 @@ if st.session_state['authentication_status']:
                 past_date = st.date_input(f'Fecha de entrevista {i+1}', key=i)
                 past_dates.append(past_date)
             your_name = st.selectbox('Local de Entrevista', ['En Persona', 'Virtual']) # changed from nombre, perhaps issues with the preloaded db
-            interviewer = st.multiselect('Entrevistador', ["Anjuli","Kathy","Laura","Justin","Otro"]) # db side, add in other to write in
+            interviewer = st.multiselect('Entrevistador', interviewers) # db side, add in other to write in
             if 'Otro' in interviewer:
                 interviewer.append(st.text_input('Otro entrevistador'))
                 interviewer.remove('Otro')
