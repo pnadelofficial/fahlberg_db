@@ -35,6 +35,7 @@ interviewers = [
 ]
 
 if st.session_state['authentication_status']:
+    name_of_user = st.text_input("Nombre de la persona llenando este formulario.")
     update_or_add = st.radio('Actualizar o agregar datos', ['Agregar nuevo entrevistado', 'Actualizar entrevistado existente'])
     if update_or_add == 'Actualizar entrevistado existente':
         st.subheader('Actualizar entrevistado existente')
@@ -86,10 +87,10 @@ if st.session_state['authentication_status']:
                     geographic_level = ', '.join(geographic_level)
                     sector = st.selectbox('Sector', ['Servicios sociales', 'Seguridad', 'Otro'], index=['Servicios sociales', 'Seguridad', 'Otro'].index(data[17])) # security not translated
                     st.divider()
-                
-                works_org = st.checkbox('Works for Organization', value=data[18]) # not translated
+
+                works_org = st.checkbox('Trabaja para una organización', value=data[18]) # not translated
                 if works_org:
-                    country_of_organization = st.multiselect('Country of Organization', ['Honduras', 'El Salvador', 'US', 'Other'], default=data[19].split(', ')) # not translated
+                    country_of_organization = st.multiselect('País de la Organización', ['Honduras', 'El Salvador', 'US', 'Otro'], default=data[19].split(', ')) # not translated
                     country_of_organization = ', '.join(country_of_organization)
                     geographic_reach = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], default=data[20].split(', '))
                     geographic_reach = ', '.join(geographic_reach)
@@ -192,6 +193,7 @@ if st.session_state['authentication_status']:
     else:
         st.subheader('Agregar nuevo entrevistado')
         case_no = '',
+        user = name_of_user,
         date = '',
         pseudonym = '',
         recorded = '',
@@ -270,14 +272,14 @@ if st.session_state['authentication_status']:
 
             works_gov = st.checkbox('Trabaja para el Gobierno')
             if works_gov:
-                geographic_level = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'])
+                geographic_level = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], key="geographic_level_1")
                 geographic_level = ', '.join(geographic_level)
                 sector = st.selectbox('Sector', ['Servicios sociales', 'Seguridad', 'Otro']) 
                 st.divider()
 
-            works_org = st.checkbox('Works for Organization') # not translated
+            works_org = st.checkbox('Trabaja para una organización') # not translated
             if works_org: 
-                country_of_organization = st.multiselect('Country of Organization', ['Honduras', 'El Salvador', 'US', 'Other']) # not translated
+                country_of_organization = st.multiselect('País de la Organización', ['Honduras', 'El Salvador', 'US', 'Otro'], key="country_of_organization_2") # not translated
                 country_of_organization = ', '.join(country_of_organization)
                 geographic_reach = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad']) 
                 geographic_reach = ', '.join(geographic_reach)
@@ -337,6 +339,7 @@ if st.session_state['authentication_status']:
             db.insert(
                 'interviewee',
                 case_no=case_no,
+                user=name_of_user,
                 date=date,
                 pseudonym=pseudonym,
                 recorded=recorded,
