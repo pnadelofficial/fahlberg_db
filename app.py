@@ -145,6 +145,14 @@ if st.session_state['authentication_status']:
                         state_violence_types = ''
                     if 'Otro' not in violence_type:
                         other_violence_types = ''
+                    
+                faced_discrimination = st.checkbox('Existen otros tipos de discriminación identificados en este caso?', value=data[39])
+                if faced_discrimination:
+                    discrimination_type = st.multiselect("Tipo de discriminación", ["Clase Social", "Edad", "Sexo", "Orientación/Identidad sexual", "Discapacidad", "Etnia", "Lugar de procedencia", "Condición de Salud",  "Otro"], default=data[40].split(', '))
+                    discrimination_type = ', '.join(discrimination_type)
+                else:
+                    discrimination_type = ''
+
             if st.button('Actualizar'):
                 db.update(
                     'interviewee',
@@ -185,7 +193,8 @@ if st.session_state['authentication_status']:
                     random_crime_type=random_violence_types,
                     intimate_violence_type=intimate_violence_types,
                     state_violence_type=state_violence_types,
-                    other_violence_type=other_violence_types
+                    other_violence_type=other_violence_types,
+                    discrimination_type=discrimination_type
                 )
                 st.success('Datos del entrevistado agregado correctamente')
         else:
@@ -232,7 +241,9 @@ if st.session_state['authentication_status']:
         intimate_violence_types = '',
         state_violence_types = '',
         other_violence_types = '',
+        discrimination_type = '',
         pre_name_of_conflict_zone = ''
+
         # interview details
         with st.expander('Detalles de la entrevista'):
             case_no = st.text_input('Número de caso en Excel')
@@ -312,17 +323,17 @@ if st.session_state['authentication_status']:
                     gang_violence_type = st.multiselect('Tipo de violencia de pandillas', ['Desplazamiento forzado', 'Extorsión', 'Reclutamiento', 'Agresión sexual', 'Otro'])
                     gang_violence_types = ', '.join(gang_violence_type)
                 if 'Delitos comunes' in violence_type:
-                    random_violence_type = st.multiselect('Tipo de violencia aleatoria', ['Robo a mano armada', 'Robo sin arma', 'Secuestro', 'Allanamiento de morada', 'Otro'])
+                    random_violence_type = st.multiselect('Delitos comunes', ['Robo a mano armada', 'Robo sin arma', 'Secuestro', 'Hurto', 'Invasión en la casa'])
                     random_violence_types = ', '.join(random_violence_type)
                 if 'Violencia sexual' in violence_type:
-                    intimate_violence_type = st.multiselect('Tipo de violencia íntima', ['Agresión sexual', 'Violencia de pareja', 'Violencia contra personas LGBTQ', 'Otro'])
+                    intimate_violence_type = st.multiselect('Tipo de violencia íntima', ['Agresión sexual', 'Violencia de pareja / física', 'Violencia emocional de una pareja',  'Violencia contra personas LGBTQ', 'Acoso y cosificación', 'Otro'])
                     intimate_violence_types = ', '.join(intimate_violence_type)
                 if 'Violencia estatal' in violence_type:
-                    state_violence_type = st.multiselect('Tipo de violencia estatal', ['Miedo a la detención', 'Detención arbitraria de familiares cercanos', 'Violencia policial', 'Violencia en prisión', 'Represión política', 'Otro'])
+                    state_violence_type = st.multiselect('Tipo de violencia estatal', ['Miedo a la detención', 'Detención arbitraria de familiares cercanos', 'Violencia policial', 'Conflictos armados de la policia en la colonia', 'Violencia en prisión', 'Represión política', 'Allanamiento de morada', 'Llamada anónima', 'Intimidación de policíales o militares', 'Acoso de policiales o militares', 'Otro'])
                     state_violence_types = ', '.join(state_violence_type)
                 if 'Otro' in violence_type:
                     other_violence_type = st.text_input('Otro tipo de violencia')
-                    other_violence_types = ', '.join(other_violence_type)
+                    other_violence_types = ', '.join(other_violence_type)            
                 st.divider()
                 violence_types = ', '.join(violence_type)
                 if 'Violencia de pandillas' not in violence_type:
@@ -335,6 +346,13 @@ if st.session_state['authentication_status']:
                     state_violence_types = ''
                 if 'Otro' not in violence_type:
                     other_violence_types = ''
+        
+            faced_discrimination = st.checkbox('Existen otros tipos de discriminación identificados en este caso?')
+            if faced_discrimination:
+                discrimination_type = st.multiselect("Tipo de discriminación", ["Clase Social", "Edad", "Sexo", "Orientación/Identidad sexual", "Discapacidad", "Etnia", "Lugar de procedencia", "Condición de Salud",  "Otro"])
+                discrimination_type = ', '.join(discrimination_type)
+            else:
+                discrimination_type = ''
 
         if st.button('Entregar'): # not translated; my own
             db.insert(
@@ -378,7 +396,8 @@ if st.session_state['authentication_status']:
                 random_crime_type=random_violence_types,
                 intimate_violence_type=intimate_violence_types,
                 state_violence_type=state_violence_types,
-                other_violence_type=other_violence_types
+                other_violence_type=other_violence_types,
+                discrimination_type=discrimination_type
             )
             st.success('Datos del entrevistado actualizados correctamente')
 
