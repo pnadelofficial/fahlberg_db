@@ -231,7 +231,8 @@ if st.session_state['authentication_status']:
         random_violence_types = '',
         intimate_violence_types = '',
         state_violence_types = '',
-        other_violence_types = ''
+        other_violence_types = '',
+        pre_name_of_conflict_zone = ''
         # interview details
         with st.expander('Detalles de la entrevista'):
             case_no = st.text_input('Número de caso en Excel')
@@ -306,7 +307,7 @@ if st.session_state['authentication_status']:
             works_in_conflict_zone = st.checkbox('Trabaja en una zona de conflicto')
             lived_experience_of_violence = st.checkbox('Experiencia vivida de violencia')
             if lived_experience_of_violence:
-                violence_type = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'])
+                violence_type = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'], key="violence_type_3")
                 if 'Violencia de pandillas' in violence_type:
                     gang_violence_type = st.multiselect('Tipo de violencia de pandillas', ['Desplazamiento forzado', 'Extorsión', 'Reclutamiento', 'Agresión sexual', 'Otro'])
                     gang_violence_types = ', '.join(gang_violence_type)
