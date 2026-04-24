@@ -361,12 +361,11 @@ if st.session_state.get('authentication_status'):
                 conflict = render_conflict_and_violence(data, key_suffix='_update')
 
             if st.button('Actualizar'):
-                db.update(
-                    'interviewee', case_no,
-                    **{k: v for k, v in {**interview, **demographic, **professional, **conflict}.items()
-                       if k != 'case_no'}
-                )
-                st.success('Datos del entrevistado actualizados correctamente.')
+                try:
+                    db.update('interviewee', case_no, **{k: v for k, v in {**interview, **demographic, **professional, **conflict}.items() if k != 'case_no'})
+                    st.success('Datos del entrevistado actualizados correctamente.')
+                except Exception as e:
+                    st.error(str(e))
 
     # -----------------------------------------------------------------------
     # ADD mode
@@ -395,15 +394,13 @@ if st.session_state.get('authentication_status'):
                 st.error('Por favor ingrese el número de caso.')
                 st.stop()
             
-            db.insert(
-                'interviewee',
-                user=name_of_user,
-                **interview,
-                **demographic,
-                **professional,
-                **conflict,
-            )
-            st.success('Nuevo entrevistado agregado correctamente.')
+            if st.button('Entregar'):
+                try:
+                    db.insert('interviewee', user=name_of_user, **interview, **demographic, **professional, **conflict)
+                    st.success('Nuevo entrevistado agregado correctamente.')
+                except Exception as e:
+                    st.error(str(e))
+
 
     # -----------------------------------------------------------------------
     # Debug view
