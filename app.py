@@ -172,7 +172,7 @@ def render_interview_details(defaults=None):
     result['interviewer'] = ', '.join(dict.fromkeys(interviewer))  # deduplicate, preserve order
 
     result['date'] = str(result['date'])  # convert datetime.date to string
-    result['partial_consent'] = result['partial_consent'] or ''  # convert None to empty string
+    result['partial_consent'] = str(result['partial_consent']) or ''  # convert None to empty string
 
     return result
 
