@@ -388,6 +388,13 @@ if st.session_state.get('authentication_status'):
             print(f"{k}: {v}, {type(v)}")  # debug
 
         if st.button('Entregar'):
+            if not name_of_user:
+                st.error('Por favor ingrese su nombre antes de enviar.')
+                st.stop()
+            if not interview.get('case_no'):
+                st.error('Por favor ingrese el número de caso.')
+                st.stop()
+            
             db.insert(
                 'interviewee',
                 user=name_of_user,

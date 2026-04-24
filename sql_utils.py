@@ -7,24 +7,14 @@ class DatabaseManager:
         self.conn = sqlite3.connect(path)
         self.cur = self.conn.cursor()
     
-    # def insert(self, table, **kwargs):
-    #     columns = ', '.join(kwargs.keys())
-    #     placeholders = ', '.join(['?'] * len(kwargs))
-    #     values = tuple([v[0] if isinstance(v, tuple) else v for v in kwargs.values()])
-    #     query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-    #     self.cur.execute(query, values)
-    #     self.conn.commit()
-
     def insert(self, table, **kwargs):
-        for key, value in kwargs.items():
-            try:
-                columns = key
-                query = f"INSERT INTO {table} ({columns}) VALUES (?)"
-                self.cur.execute(query, (value,))
-            except Exception as e:
-                raise Exception(f"Failed on column '{key}' with value '{value}' ({type(value)}): {e}")
-        self.conn.rollback()
-
+        columns = ', '.join(kwargs.keys())
+        placeholders = ', '.join(['?'] * len(kwargs))
+        values = tuple([v[0] if isinstance(v, tuple) else v for v in kwargs.values()])
+        query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+        self.cur.execute(query, values)
+        self.conn.commit()
+    
     def update(self, table, case_no, **kwargs):
         set_values = ', '.join([f"{k} = ?" for k in kwargs.keys()])
         values = tuple(kwargs.values())
