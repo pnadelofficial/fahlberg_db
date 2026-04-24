@@ -4,11 +4,315 @@ from auth_utils import Authentication, setup_submodule
 from datetime import datetime
 import os
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+INTERVIEWERS = [
+    "Anjuli", "Kathy", "Laura", "Justin",
+    "Jennifer Ramirez", "Jazmín Marroquin", "Alejandro Manzur",
+    "José Angel Moreno", "Obed Cruz", "Keren Castellanos",
+    "Estefanía Valladares", "Katherine Martínez", "Otro",
+]
+
+AGE_RANGES      = ['Menor de 18 años', '18-29', '30-59', '60+']
+GENDERS         = ['Masculino', 'Femenino', 'Trans', 'No binario', 'Desconocido o otro']
+COUNTRIES       = ['Honduras', 'El Salvador', 'US', 'Otro']
+PROFESSION_TYPES = [
+    'Sector de Transporte', 'Negocios pequeño',
+    'Estudiante universitario o Profesor', 'Trabajador o voluntario de ONG',
+    'Afiliación con el gobierno', 'Otro',
+]
+GEO_LEVELS      = ['Nacional', 'Municipal', 'Comunidad']
+SECTORS         = ['Servicios sociales', 'Seguridad', 'Otro']
+ORG_YEARS       = ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años']
+FORMALITIES     = ['ONG formal', 'Colectivo informal', 'En proceso de formalización']
+ACTIVITY_TYPES  = [
+    'Defensa de derechos y políticas públicas', 'Apoyo a víctimas',
+    'Educación y desarrollo social', 'Investigación y periodismo',
+    'Redes y plataformas', 'Otro',
+]
+VIOLENCE_TYPES  = ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro']
+GANG_VIOLENCE   = ['Desplazamiento forzado', 'Extorsión', 'Reclutamiento', 'Agresión sexual', 'Otro']
+RANDOM_VIOLENCE = ['Robo a mano armada', 'Robo sin arma', 'Secuestro', 'Hurto', 'Invasión en la casa']
+INTIMATE_VIOLENCE = [
+    'Agresión sexual', 'Violencia de pareja / física', 'Violencia emocional de una pareja',
+    'Violencia contra personas LGBTQ', 'Acoso y cosificación', 'Otro',
+]
+STATE_VIOLENCE  = [
+    'Miedo a la detención', 'Detención arbitraria de familiares cercanos', 'Violencia policial',
+    'Conflictos armados de la policia en la colonia', 'Violencia en prisión', 'Represión política',
+    'Allanamiento de morada', 'Llamada anónima', 'Intimidación de policíales o militares',
+    'Acoso de policiales o militares', 'Otro',
+]
+DISCRIMINATION_TYPES = [
+    'Clase Social', 'Edad', 'Sexo', 'Orientación/Identidad sexual',
+    'Discapacidad', 'Etnia', 'Lugar de procedencia', 'Condición de Salud', 'Otro',
+]
+GANG_FACTIONS   = ['MS-13', 'Barrio-18', 'Otro']
+CONSENT_OPTIONS = ['Si', 'No', 'Parcial']
+INTERVIEW_LOCALES = ['En Persona', 'Virtual']
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def multiselect_with_defaults(label, options, defaults_str, key=None):
+    """
+    Renders a multiselect pre-populated from a comma-separated string of defaults.
+    Any saved values not in the current options list are added dynamically.
+    """
+    saved = [v.strip() for v in defaults_str.split(', ')] if defaults_str else []
+    all_options = list(dict.fromkeys(options + [v for v in saved if v not in options]))
+    kwargs = dict(default=saved)
+    if key:
+        kwargs['key'] = key
+    return st.multiselect(label, all_options, **kwargs)
+
+
+def render_violence_subfields(selected_types, defaults=None, key_suffix=""):
+    """
+    Renders conditional sub-fields for each selected violence type.
+    Returns a dict of {field_name: comma-separated string}.
+    defaults is a dict of field_name -> comma-separated string (for update mode).
+    """
+    defaults = defaults or {}
+    results = {
+        'gang_violence_type': '',
+        'random_crime_type': '',
+        'intimate_violence_type': '',
+        'state_violence_type': '',
+        'other_violence_type': '',
+    }
+    if 'Violencia de pandillas' in selected_types:
+        sel = multiselect_with_defaults(
+            'Tipo de violencia de pandillas', GANG_VIOLENCE,
+            defaults.get('gang_violence_type', ''), key=f'gang{key_suffix}')
+        results['gang_violence_type'] = ', '.join(sel)
+
+    if 'Delitos comunes' in selected_types:
+        sel = multiselect_with_defaults(
+            'Delitos comunes', RANDOM_VIOLENCE,
+            defaults.get('random_crime_type', ''), key=f'random{key_suffix}')
+        results['random_crime_type'] = ', '.join(sel)
+
+    if 'Violencia sexual' in selected_types:
+        sel = multiselect_with_defaults(
+            'Tipo de violencia íntima', INTIMATE_VIOLENCE,
+            defaults.get('intimate_violence_type', ''), key=f'intimate{key_suffix}')
+        results['intimate_violence_type'] = ', '.join(sel)
+
+    if 'Violencia estatal' in selected_types:
+        sel = multiselect_with_defaults(
+            'Tipo de violencia estatal', STATE_VIOLENCE,
+            defaults.get('state_violence_type', ''), key=f'state{key_suffix}')
+        results['state_violence_type'] = ', '.join(sel)
+
+    if 'Otro' in selected_types:
+        val = st.text_input('Otro tipo de violencia',
+                            value=defaults.get('other_violence_type', ''),
+                            key=f'other{key_suffix}')
+        results['other_violence_type'] = val
+
+    return results
+
+
+def fetch_row_as_dict(db, case_no):
+    """Returns a single interviewee row as a dict, keyed by column name."""
+    db.cur.execute("SELECT * FROM interviewee WHERE case_no = ?", (case_no,))
+    columns = [desc[0] for desc in db.cur.description]
+    row = db.cur.fetchone()
+    if row:
+        return dict(zip(columns, row))
+    return None
+
+# ---------------------------------------------------------------------------
+# Form sections  (return dicts so callers can collect all fields cleanly)
+# ---------------------------------------------------------------------------
+
+def render_interview_details(defaults=None):
+    d = defaults or {}
+    result = {}
+
+    result['case_no']   = st.text_input('Número de caso en Excel', value=d.get('case_no', ''))
+    result['date']      = st.date_input('Fecha de hoy',
+                                         value=datetime.strptime(d['date'], '%Y-%m-%d').date()
+                                         if d.get('date') else datetime.today())
+    result['pseudonym'] = st.text_input('Seudónimo', value=d.get('pseudonym', ''))
+    result['recorded']  = st.checkbox('Grabación', value=bool(d.get('recorded', False)))
+
+    consent = st.selectbox('Consentimiento', CONSENT_OPTIONS,
+                           index=CONSENT_OPTIONS.index(d['consent']) if d.get('consent') in CONSENT_OPTIONS else 0)
+    result['consent'] = consent
+    result['partial_consent'] = (
+        st.text_area('Consentimiento parcial', value=d.get('partial_consent') or '')
+        if consent == 'Parcial' else None
+    )
+
+    past_interviews = st.number_input('Número total de entrevistas', value=int(d.get('past_interviews', 1)), min_value=1)
+    result['past_interviews'] = past_interviews
+
+    saved_dates = d.get('past_dates', '').split(', ') if d.get('past_dates') else []
+    past_dates = []
+    for i in range(past_interviews):
+        default_date = datetime.strptime(saved_dates[i], '%Y-%m-%d').date() if i < len(saved_dates) else datetime.today()
+        past_dates.append(st.date_input(f'Fecha de entrevista {i+1}', key=f'past_date_{i}', value=default_date))
+    result['past_dates'] = ', '.join(str(d) for d in past_dates)
+
+    result['your_name'] = st.selectbox(
+        'Local de Entrevista', INTERVIEW_LOCALES,
+        index=INTERVIEW_LOCALES.index(d['your_name']) if d.get('your_name') in INTERVIEW_LOCALES else 0)
+
+    saved_interviewers = d.get('interviewer', '').split(', ') if d.get('interviewer') else []
+    all_interviewers = list(dict.fromkeys(INTERVIEWERS + saved_interviewers))
+    interviewer = st.multiselect('Entrevistador', all_interviewers, default=saved_interviewers)
+    if 'Otro' in interviewer:
+        custom = st.text_input('Otro Entrevistador')
+        interviewer = [v for v in interviewer if v != 'Otro'] + ([custom] if custom else [])
+    result['interviewer'] = ', '.join(dict.fromkeys(interviewer))  # deduplicate, preserve order
+
+    return result
+
+
+def render_demographic_info(defaults=None):
+    d = defaults or {}
+    result = {}
+    result['age_range'] = st.selectbox(
+        'Rango de edad', AGE_RANGES,
+        index=AGE_RANGES.index(d['age_range']) if d.get('age_range') in AGE_RANGES else 0)
+    result['gender'] = st.selectbox(
+        'Género', GENDERS,
+        index=GENDERS.index(d['gender']) if d.get('gender') in GENDERS else 0)
+    result['country'] = ', '.join(
+        multiselect_with_defaults('País', COUNTRIES, d.get('country', '')))
+    return result
+
+
+def render_professional_info(defaults=None):
+    d = defaults or {}
+    result = {}
+
+    result['profession_type'] = ', '.join(
+        multiselect_with_defaults('Tipo de profesiones', PROFESSION_TYPES, d.get('profession_type', '')))
+    result['professional_title'] = st.text_input('Titulo profesional', value=d.get('professional_title', ''))
+    st.divider()
+
+    works_gov = st.checkbox('Trabaja para el Gobierno', value=bool(d.get('works_in_gov', False)))
+    result['works_in_gov'] = works_gov
+    result['geographic_level'] = ''
+    result['sector'] = ''
+    if works_gov:
+        result['geographic_level'] = ', '.join(
+            multiselect_with_defaults('Nivel geográfico', GEO_LEVELS, d.get('geographic_level', '')))
+        result['sector'] = st.selectbox(
+            'Sector', SECTORS,
+            index=SECTORS.index(d['sector']) if d.get('sector') in SECTORS else 0)
+    st.divider()
+
+    works_org = st.checkbox('Trabaja para una organización', value=bool(d.get('works_in_org', False)))
+    result['works_in_org'] = works_org
+    result['country_of_organization'] = ''
+    result['geographic_reach'] = ''
+    result['years_of_operation'] = ''
+    result['formality'] = ''
+    result['types_of_activities'] = ''
+    result['types_of_violence'] = ''
+    result['org_works_in_conflict'] = False
+    if works_org:
+        result['country_of_organization'] = ', '.join(
+            multiselect_with_defaults('País de la Organización', COUNTRIES, d.get('country_of_organization', '')))
+        result['geographic_reach'] = ', '.join(
+            multiselect_with_defaults('Alcance geográfico', GEO_LEVELS, d.get('geographic_reach', '')))
+        result['years_of_operation'] = st.selectbox(
+            'Tiempo que la organización está activa', ORG_YEARS,
+            index=ORG_YEARS.index(d['years_of_operation']) if d.get('years_of_operation') in ORG_YEARS else 0)
+        result['formality'] = st.selectbox(
+            'Formalidad', FORMALITIES,
+            index=FORMALITIES.index(d['formality']) if d.get('formality') in FORMALITIES else 0)
+        result['types_of_activities'] = ', '.join(
+            multiselect_with_defaults('Tipos de actividades', ACTIVITY_TYPES, d.get('types_of_activities', '')))
+        result['types_of_violence'] = ', '.join(
+            multiselect_with_defaults('Tipos de violencia', VIOLENCE_TYPES, d.get('types_of_violence', '')))
+        result['org_works_in_conflict'] = st.checkbox(
+            'La organización trabaja en zonas de conflicto', value=bool(d.get('org_works_in_conflict', False)))
+
+    return result
+
+
+def render_conflict_and_violence(defaults=None, key_suffix=""):
+    d = defaults or {}
+    result = {}
+
+    # Current conflict zone
+    cur_conflict = st.checkbox('Actualmente vive en una zona de conflicto',
+                               value=bool(d.get('currently_lives_in_conflict', False)))
+    result['currently_lives_in_conflict'] = cur_conflict
+    result['cur_name_of_conflict'] = ''
+    result['gang_faction'] = ''
+    if cur_conflict:
+        result['cur_name_of_conflict'] = st.text_input(
+            'Nombre de la zona de conflicto actual', value=d.get('cur_name_of_conflict', ''))
+        gf = d.get('gang_faction', '')
+        result['gang_faction'] = st.selectbox(
+            'Facción de pandillas', GANG_FACTIONS,
+            index=GANG_FACTIONS.index(gf) if gf in GANG_FACTIONS else 0)
+        st.divider()
+
+    # Previous conflict zone
+    prev_conflict = st.checkbox('Anteriormente vivió en una zona de conflicto',
+                                value=bool(d.get('previously_lives_in_conflict', False)))
+    result['previously_lives_in_conflict'] = prev_conflict
+    result['prev_name_of_conflict'] = ''
+    if prev_conflict:
+        result['prev_name_of_conflict'] = st.text_input(
+            'Nombre de la zona de conflicto anterior', value=d.get('prev_name_of_conflict', ''))
+        st.divider()
+
+    result['works_in_conflict'] = st.checkbox('Trabaja en una zona de conflicto',
+                                              value=bool(d.get('works_in_conflict', False)))
+
+    # Lived experience of violence
+    lived = st.checkbox('Experiencia vivida de violencia',
+                        value=bool(d.get('lived_experience_of_violence', False)))
+    result['lived_experience_of_violence'] = lived
+    result['violence_types'] = ''
+    sub_defaults = {k: d.get(k, '') for k in ['gang_violence_type', 'random_crime_type',
+                                               'intimate_violence_type', 'state_violence_type',
+                                               'other_violence_type']}
+    sub_results = {k: '' for k in sub_defaults}
+
+    if lived:
+        selected_violence = multiselect_with_defaults(
+            'Tipos de violencia', VIOLENCE_TYPES, d.get('violence_types', ''),
+            key=f'violence_types{key_suffix}')
+        result['violence_types'] = ', '.join(selected_violence)
+        sub_results = render_violence_subfields(selected_violence, sub_defaults, key_suffix)
+        st.divider()
+
+    result.update(sub_results)
+
+    # Discrimination
+    faced_discrimination = st.checkbox(
+        '¿Existen otros tipos de discriminación identificados en este caso?',
+        value=bool(d.get('discrimination_type', '')))
+    result['discrimination_type'] = ''
+    if faced_discrimination:
+        result['discrimination_type'] = ', '.join(
+            multiselect_with_defaults('Tipo de discriminación', DISCRIMINATION_TYPES,
+                                      d.get('discrimination_type', '')))
+
+    return result
+
+# ---------------------------------------------------------------------------
+# App setup
+# ---------------------------------------------------------------------------
+
 if st.session_state.get('submodule_setup') is None:
     setup_submodule()
+    st.session_state['submodule_setup'] = True
 
 config_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'config.yaml')
-db_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'db.sql')
+db_path     = os.path.join('sensitive_data_for_fahlberg_interview_db', 'db.sql')
 
 st.title('Base de datos de entrevistas de Fahlberg')
 
@@ -18,390 +322,78 @@ auth.display()
 
 db = DatabaseManager(path=db_path)
 
-interviewers = [
-    "Anjuli",
-    "Kathy",
-    "Laura",
-    "Justin",
-    "Jennifer Ramirez",
-    "Jazmín Marroquin",
-    "Alejandro Manzur",
-    "José Angel Moreno",
-    "Obed Cruz",
-    "Keren Castellanos",
-    "Estefanía Valladares",
-    "Katherine Martínez",
-    "Otro"
-]
+# ---------------------------------------------------------------------------
+# Main form (authenticated users only)
+# ---------------------------------------------------------------------------
 
-if st.session_state['authentication_status']:
-    name_of_user = st.text_input("Nombre de la persona llenando este formulario.")
-    update_or_add = st.radio('Actualizar o agregar datos', ['Agregar nuevo entrevistado', 'Actualizar entrevistado existente'])
-    if update_or_add == 'Actualizar entrevistado existente':
+if st.session_state.get('authentication_status'):
+    name_of_user   = st.text_input('Nombre de la persona llenando este formulario.')
+    mode           = st.radio('Modo', ['Agregar nuevo entrevistado', 'Actualizar entrevistado existente'])
+
+    # -----------------------------------------------------------------------
+    # UPDATE mode
+    # -----------------------------------------------------------------------
+    if mode == 'Actualizar entrevistado existente':
         st.subheader('Actualizar entrevistado existente')
-        case_no = st.selectbox('Número de caso en Excel', db.cur.execute("SELECT case_no FROM interviewee").fetchall(), format_func=lambda x: x[0]) 
-        try:
-            case_no = case_no[0]
-        except Exception as e:
-            st.error("No hay datos en la base de datos. Por favor, agregue un nuevo entrevistado primero.")
+
+        case_nos = db.cur.execute("SELECT case_no FROM interviewee").fetchall()
+        if not case_nos:
+            st.error('No hay datos en la base de datos. Por favor, agregue un nuevo entrevistado primero.')
             st.stop()
-        data = db.cur.execute(f"SELECT * FROM interviewee WHERE case_no={case_no}").fetchone()
-        if data:
-            st.write('Update the following fields:') # not translated
+
+        selected = st.selectbox('Número de caso', case_nos, format_func=lambda x: x[0])
+        case_no  = selected[0]
+        data     = fetch_row_as_dict(db, case_no)
+
+        if not data:
+            st.error('No se encontraron datos para este número de caso.')
+        else:
             with st.expander('Detalles de la entrevista'):
-                pseudonym = st.text_input('Seudónimo', value=data[2])
-                recorded = st.checkbox('Grabación', value=data[3])
-                consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial'], index=['Si', 'No', 'Parcial', 'Yes'].index(data[4]))
-                if consent == 'Parcial':
-                    partial_consent = st.text_area('Consentimiento parcial', value=data[5])
-                else:
-                    partial_consent = None
-                past_interviews = st.number_input('Número total de entrevistas', value=data[6])
-                past_dates = []
-                for i in range(past_interviews):
-                    prev_date = datetime.strptime(data[7].split(', ')[i], '%Y-%m-%d')
-                    past_date = st.date_input(f'Fecha de entrevista {i+1}', key=i, value=prev_date)
-                    past_dates.append(past_date)
-                past_dates = ', '.join([str(past_date) for past_date in past_dates])
-                your_name = st.selectbox('Local de Entrevista', ['En Persona', 'Virtual'], value=data[8]) # changed from nombre, perhaps issues with the preloaded db
-                poss_interviewers = list(set(interviewers + data[9].split(', ')))
-                interviewer = st.multiselect('Entrevistador', poss_interviewers, default=data[9].split(', '))
-                if 'Otro' in interviewer:
-                    interviewer.append(st.text_input('Otro Entrevistador', value=interviewer[-1]))
-                    interviewer.remove('Otro')
-                interviewer = ', '.join(list(set(interviewer)))
+                interview = render_interview_details(data)
             with st.expander('Información demográfica'):
-                age_range = st.selectbox('Rango de edad', ['Menor de 18 años', '18-29', '30-59', '60+'], index=['Menor de 18 años', '18-29', '30-59', '60+'].index(data[10]))
-                gender = st.selectbox('Género', ['Masculino', 'Femenino', 'Trans', 'No binario', 'Desconocido o otro'], index=['Masculino', 'Femenino', 'Trans', 'No binario'].index(data[11]))
-                country = st.multiselect('País', ['Honduras', 'El Salvador', 'US', 'Otro'], index=['Honduras', 'El Salvador', 'US', 'Otro'].index(data[12]))
+                demographic = render_demographic_info(data)
             with st.expander('Información profesional'):
-                poss_profession_type = list(set(['Sector de Transporte ', 'Negocios pequeño', 'Estudiante universitario o Profesor', 'Trabajador o voluntario de ONG ', 'Afiliación con el gobierno', 'Otro'] + data[13].split(', ')))
-                profession_type = st.multiselect('Tipo de profesiones', poss_profession_type, default=data[13].split(', '))
-                profession_type = ', '.join(profession_type)
-                professional_title = st.text_input('Titulo professional', value=data[14])
-                st.divider()
-
-                works_gov = st.checkbox('Trabaja para el Gobierno', value=data[15])
-                if works_gov:
-                    geographic_level = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], default=data[16].split(', '))
-                    geographic_level = ', '.join(geographic_level)
-                    sector = st.selectbox('Sector', ['Servicios sociales', 'Seguridad', 'Otro'], index=['Servicios sociales', 'Seguridad', 'Otro'].index(data[17])) # security not translated
-                    st.divider()
-
-                works_org = st.checkbox('Trabaja para una organización', value=data[18]) # not translated
-                if works_org:
-                    country_of_organization = st.multiselect('País de la Organización', ['Honduras', 'El Salvador', 'US', 'Otro'], default=data[19].split(', ')) # not translated
-                    country_of_organization = ', '.join(country_of_organization)
-                    geographic_reach = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], default=data[20].split(', '))
-                    geographic_reach = ', '.join(geographic_reach)
-                    years_of_operation = st.selectbox('Tiempo que la organización está activa', ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'], index=['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'].index(data[21]))
-                    formality = st.selectbox('Formalidad', ['ONG formal', 'Colectivo informal', 'En proceso de formalización'], index=['ONG formal', 'Colectivo informal', 'En proceso de formalización'].index(data[22]))
-                    types_of_activities = st.multiselect('Tipos de actividades', ['Defensa de derechos y políticas públicas', "Apoyo a víctimas", "Educación y desarrollo social", "Investigación y periodismo", "Redes y plataformas", "Otro"], default=data[23].split(', '))
-                    types_of_activities = ', '.join(types_of_activities)
-                    types_of_violence = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'], default=data[24].split(', '))
-                    types_of_violence = ', '.join(types_of_violence)
-                    org_works_in_conflict_zone = st.checkbox('La organización trabaja en zonas de conflicto', value=data[25])
-                
+                professional = render_professional_info(data)
             with st.expander('Ha vivido experiencias de violencia'):
-                cur_lives_in_conflict_zone = st.checkbox('Actualmente vive en una zona de conflicto', value=data[26])
-                if cur_lives_in_conflict_zone:
-                    cur_name_of_conflict_zone = st.text_input('Nombre de la zona de conflicto actual', value=data[27])
-                    gang_faction = st.selectbox('Facción de pandillas', ['MS-13', 'Barrio-18', 'Otro'], index=['MS-13', 'Barrio-18', 'Otro'].index(data[28]))
-                    st.divider()
-                
-                pre_lives_in_conflict_zone = st.checkbox('Anteriormente vivió en una zona de conflicto', value=data[29])
-                if pre_lives_in_conflict_zone:
-                    pre_name_of_conflict_zone = st.text_input('Nombre de la zona de conflicto anterior', value=data[30])
-                    st.divider()
-                
-                works_in_conflict_zone = st.checkbox('Trabaja en una zona de conflicto', value=data[31])
-                lived_experience_of_violence = st.checkbox('Experiencia vivida de violencia', value=data[32])
-                if lived_experience_of_violence:
-                    violence_type = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'], default=data[33].split(', '))
-                    if 'Violencia de pandillas' in violence_type:
-                        gang_violence_type = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'], default=data[34].split(', '))
-                        gang_violence_types = ', '.join(gang_violence_type)
-                    if 'Delitos comunes' in violence_type:
-                        random_violence_type = st.multiselect('Tipo de violencia aleatoria', ['Robo a mano armada', 'Robo sin arma', 'Secuestro', 'Allanamiento de morada', 'Otro'], default=data[35].split(', '))
-                        random_violence_types = ', '.join(random_violence_type)
-                    if 'Violencia sexual' in violence_type:
-                        intimate_violence_type = st.multiselect('Tipo de violencia íntima', ['Agresión sexual', 'Violencia de pareja', 'Violencia contra personas LGBTQ', 'Otro'], default=data[36].split(', '))
-                        intimate_violence_types = ', '.join(intimate_violence_type)
-                    if 'Violencia estatal' in violence_type:
-                        state_violence_type = st.multiselect('Tipo de violencia estatal', ['Miedo a la detención', 'Detención arbitraria de familiares cercanos', 'Violencia policial', 'Violencia en prisión', 'Represión política', 'Otro'], default=data[37].split(', '))
-                        state_violence_types = ', '.join(state_violence_type)
-                    if 'Otro' in violence_type:
-                        other_violence_type = st.text_input('Otro tipo de violencia', value=data[38])
-                        other_violence_types = ', '.join(other_violence_type)
-                    st.divider()
-                    violence_types = ', '.join(violence_type)
-                    if 'Violencia de pandillas' not in violence_type:
-                        gang_violence_types = ''
-                    if 'Delitos comunes' not in violence_type: # from communes
-                        random_violence_types = ''
-                    if 'Violencia sexual' not in violence_type:
-                        intimate_violence_types = ''
-                    if 'Violencia estatal' not in violence_type:
-                        state_violence_types = ''
-                    if 'Otro' not in violence_type:
-                        other_violence_types = ''
-                    
-                faced_discrimination = st.checkbox('Existen otros tipos de discriminación identificados en este caso?', value=data[39])
-                if faced_discrimination:
-                    discrimination_type = st.multiselect("Tipo de discriminación", ["Clase Social", "Edad", "Sexo", "Orientación/Identidad sexual", "Discapacidad", "Etnia", "Lugar de procedencia", "Condición de Salud",  "Otro"], default=data[40].split(', '))
-                    discrimination_type = ', '.join(discrimination_type)
-                else:
-                    discrimination_type = ''
+                conflict = render_conflict_and_violence(data, key_suffix='_update')
 
             if st.button('Actualizar'):
                 db.update(
-                    'interviewee',
-                    case_no=case_no,
-                    pseudonym=pseudonym,
-                    recorded=recorded,
-                    consent=consent,
-                    partial_consent=partial_consent,
-                    past_interviews=past_interviews,
-                    past_dates=past_dates,
-                    your_name=your_name,
-                    interviewer=interviewer,
-                    age_range=age_range,
-                    gender=gender,
-                    country=country,
-                    profession_type=profession_type,
-                    professional_title=professional_title,
-                    works_in_gov=works_gov,
-                    geographic_level=geographic_level,
-                    sector=sector,
-                    works_in_org=works_org,
-                    country_of_organization=country_of_organization,
-                    geographic_reach=geographic_reach,
-                    years_of_operation=years_of_operation,
-                    formality=formality,
-                    types_of_activities=types_of_activities,
-                    types_of_violence=types_of_violence,
-                    org_works_in_conflict=org_works_in_conflict_zone,
-                    currently_lives_in_conflict=cur_lives_in_conflict_zone,
-                    cur_name_of_conflict=cur_name_of_conflict_zone,
-                    gang_faction=gang_faction,
-                    previously_lives_in_conflict=pre_lives_in_conflict_zone,
-                    prev_name_of_conflict=pre_name_of_conflict_zone,
-                    works_in_conflict=works_in_conflict_zone,
-                    lived_experience_of_violence=lived_experience_of_violence,
-                    violence_types=violence_types,
-                    gang_violence_type=gang_violence_types,
-                    random_crime_type=random_violence_types,
-                    intimate_violence_type=intimate_violence_types,
-                    state_violence_type=state_violence_types,
-                    other_violence_type=other_violence_types,
-                    discrimination_type=discrimination_type
+                    'interviewee', case_no,
+                    **{k: v for k, v in {**interview, **demographic, **professional, **conflict}.items()
+                       if k != 'case_no'}
                 )
-                st.success('Datos del entrevistado agregado correctamente')
-        else:
-            st.error('No se encontraron datos para este número de caso')
+                st.success('Datos del entrevistado actualizados correctamente.')
+
+    # -----------------------------------------------------------------------
+    # ADD mode
+    # -----------------------------------------------------------------------
     else:
         st.subheader('Agregar nuevo entrevistado')
-        case_no = '',
-        user = name_of_user,
-        date = '',
-        pseudonym = '',
-        recorded = '',
-        consent = '',
-        partial_consent = '',
-        past_interviews = '',
-        past_dates = '',
-        your_name = '',
-        interviewer = '',
-        age_range = '',
-        gender = '',
-        country = '',
-        profession_type = '',
-        professional_title = '',
-        works_in_gov = '',
-        geographic_level = '',
-        sector = '',
-        works_in_org = '',
-        country_of_organization = '',
-        geographic_reach = '',
-        years_of_operation = '',
-        formality = '',
-        types_of_activities = '',
-        types_of_violence = '',
-        org_works_in_conflict_zone = '',
-        currently_lives_in_conflict = '',
-        cur_name_of_conflict = '',
-        gang_faction = '',
-        pre_lives_in_conflict_zone = '',
-        prev_name_of_conflict = '',
-        works_in_conflict = '',
-        lived_experience_of_violence = '',
-        violence_types = '',
-        gang_violence_types = '',
-        random_violence_types = '',
-        intimate_violence_types = '',
-        state_violence_types = '',
-        other_violence_types = '',
-        discrimination_type = '',
-        pre_name_of_conflict_zone = ''
 
-        # interview details
         with st.expander('Detalles de la entrevista'):
-            case_no = st.text_input('Número de caso en Excel')
-            date = st.date_input("Fecha de hoy")
-            pseudonym = st.text_input('Seudónimo')
-            recorded = st.checkbox('Grabación')
-            consent = st.selectbox('Consentimiento', ['Si', 'No', 'Parcial'])
-            if consent == 'Parcial':
-                partial_consent = st.text_area('Parcial consentimiento')
-            else:
-                partial_consent = None
-            past_interviews = st.number_input('Número total de entrevistas', value=1)   
-            past_dates = []
-            for i in range(past_interviews):
-                past_date = st.date_input(f'Fecha de entrevista {i+1}', key=i)
-                past_dates.append(past_date)
-            your_name = st.selectbox('Local de Entrevista', ['En Persona', 'Virtual']) # changed from nombre, perhaps issues with the preloaded db
-            interviewer = st.multiselect('Entrevistador', interviewers) # db side, add in other to write in
-            if 'Otro' in interviewer:
-                interviewer.append(st.text_input('Otro entrevistador'))
-                interviewer.remove('Otro')
-
-            past_dates = ', '.join([str(past_date) for past_date in past_dates])
-            interviewer = ', '.join(interviewer)
-        
-        # demographic information
+            interview = render_interview_details()
         with st.expander('Información demográfica'):
-            age_range = st.selectbox('Rango de edad', ['Menor de 18 años', '18-29', '30-59', '60+'])
-            gender = st.selectbox('Género', ['Masculino', 'Femenino', 'Trans', 'No binario', 'Desconocido o otro'])
-            country = st.selectbox('País', ['Honduras', 'El Salvador', 'US', 'Otro'])
-        
-        # professional information
+            demographic = render_demographic_info()
         with st.expander('Información profesional'):
-            profession_type = st.multiselect('Tipo de profesiones', ['Sector de Transporte ', 'Negocios pequeño', 'Estudiante universitario o Profesor', 'Trabajador o voluntario de ONG ', 'Afiliación con el gobierno', 'Otro'])
-            profession_type = ', '.join(profession_type)
-            professional_title = st.text_input('Titulo professional')
-            st.divider()
-
-            works_gov = st.checkbox('Trabaja para el Gobierno')
-            if works_gov:
-                geographic_level = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad'], key="geographic_level_1")
-                geographic_level = ', '.join(geographic_level)
-                sector = st.selectbox('Sector', ['Servicios sociales', 'Seguridad', 'Otro']) 
-                st.divider()
-
-            works_org = st.checkbox('Trabaja para una organización') # not translated
-            if works_org: 
-                country_of_organization = st.multiselect('País de la Organización', ['Honduras', 'El Salvador', 'US', 'Otro'], key="country_of_organization_2") # not translated
-                country_of_organization = ', '.join(country_of_organization)
-                geographic_reach = st.multiselect('Nivel geográfico', ['Nacional', 'Municipal', 'Comunidad']) 
-                geographic_reach = ', '.join(geographic_reach)
-                years_of_operation = st.selectbox('Tiempo que la organización está activa', ['Menos de 5 años', '5-9 años', '10-19 años', '20+ años'])
-                formality = st.selectbox('Formalidad', ['ONG formal', 'Colectivo informal', 'En proceso de formalización'])
-                types_of_activities = st.multiselect('Tipos de actividades', ['Defensa de derechos y políticas públicas', "Apoyo a víctimas", "Educación y desarrollo social", "Investigación y periodismo", "Redes y plataformas", "Otro"])
-                types_of_activities = ', '.join(types_of_activities)
-                types_of_violence = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'])
-                types_of_violence = ', '.join(types_of_violence)
-                org_works_in_conflict_zone = st.checkbox('La organización trabaja en zonas de conflicto')
-        
+            professional = render_professional_info()
         with st.expander('Ha vivido experiencias de violencia'):
-            cur_lives_in_conflict_zone = st.checkbox('Actualmente vive en una zona de conflicto') 
-            if cur_lives_in_conflict_zone:
-                cur_name_of_conflict_zone = st.text_input('Nombre de la zona de conflicto actual')
-                gang_faction = st.selectbox('Facción de pandillas', ['MS-13', 'Barrio-18', 'Otro'])
-                st.divider()
-            
-            pre_lives_in_conflict_zone = st.checkbox('Anteriormente vivió en una zona de conflicto')
-            if pre_lives_in_conflict_zone:
-                pre_name_of_conflict_zone = st.text_input('Nombre de la zona de conflicto anterior')
-                st.divider()
-            
-            works_in_conflict_zone = st.checkbox('Trabaja en una zona de conflicto')
-            lived_experience_of_violence = st.checkbox('Experiencia vivida de violencia')
-            if lived_experience_of_violence:
-                violence_type = st.multiselect('Tipos de violencia', ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro'], key="violence_type_3")
-                if 'Violencia de pandillas' in violence_type:
-                    gang_violence_type = st.multiselect('Tipo de violencia de pandillas', ['Desplazamiento forzado', 'Extorsión', 'Reclutamiento', 'Agresión sexual', 'Otro'])
-                    gang_violence_types = ', '.join(gang_violence_type)
-                if 'Delitos comunes' in violence_type:
-                    random_violence_type = st.multiselect('Delitos comunes', ['Robo a mano armada', 'Robo sin arma', 'Secuestro', 'Hurto', 'Invasión en la casa'])
-                    random_violence_types = ', '.join(random_violence_type)
-                if 'Violencia sexual' in violence_type:
-                    intimate_violence_type = st.multiselect('Tipo de violencia íntima', ['Agresión sexual', 'Violencia de pareja / física', 'Violencia emocional de una pareja',  'Violencia contra personas LGBTQ', 'Acoso y cosificación', 'Otro'])
-                    intimate_violence_types = ', '.join(intimate_violence_type)
-                if 'Violencia estatal' in violence_type:
-                    state_violence_type = st.multiselect('Tipo de violencia estatal', ['Miedo a la detención', 'Detención arbitraria de familiares cercanos', 'Violencia policial', 'Conflictos armados de la policia en la colonia', 'Violencia en prisión', 'Represión política', 'Allanamiento de morada', 'Llamada anónima', 'Intimidación de policíales o militares', 'Acoso de policiales o militares', 'Otro'])
-                    state_violence_types = ', '.join(state_violence_type)
-                if 'Otro' in violence_type:
-                    other_violence_type = st.text_input('Otro tipo de violencia')
-                    other_violence_types = ', '.join(other_violence_type)            
-                st.divider()
-                violence_types = ', '.join(violence_type)
-                if 'Violencia de pandillas' not in violence_type:
-                    gang_violence_types = ''
-                if 'Delitos comunes' not in violence_type: # from communes
-                    random_violence_types = ''
-                if 'Violencia sexual' not in violence_type:
-                    intimate_violence_types = ''
-                if 'Violencia estatal' not in violence_type:
-                    state_violence_types = ''
-                if 'Otro' not in violence_type:
-                    other_violence_types = ''
-        
-            faced_discrimination = st.checkbox('Existen otros tipos de discriminación identificados en este caso?')
-            if faced_discrimination:
-                discrimination_type = st.multiselect("Tipo de discriminación", ["Clase Social", "Edad", "Sexo", "Orientación/Identidad sexual", "Discapacidad", "Etnia", "Lugar de procedencia", "Condición de Salud",  "Otro"])
-                discrimination_type = ', '.join(discrimination_type)
-            else:
-                discrimination_type = ''
+            conflict = render_conflict_and_violence(key_suffix='_add')
 
-        if st.button('Entregar'): # not translated; my own
+        if st.button('Entregar'):
             db.insert(
                 'interviewee',
-                case_no=case_no,
                 user=name_of_user,
-                date=date,
-                pseudonym=pseudonym,
-                recorded=recorded,
-                consent=consent,
-                partial_consent=partial_consent,
-                past_interviews=past_interviews,
-                past_dates=past_dates,
-                your_name=your_name,
-                interviewer=interviewer,
-                age_range=age_range,
-                gender=gender,
-                country=country,
-                profession_type=profession_type,
-                professional_title=professional_title,
-                works_in_gov=works_gov,
-                geographic_level=geographic_level,
-                sector=sector,
-                works_in_org=works_org,
-                country_of_organization=country_of_organization,
-                geographic_reach=geographic_reach,
-                years_of_operation=years_of_operation,
-                formality=formality,
-                types_of_activities=types_of_activities,
-                types_of_violence=types_of_violence,
-                org_works_in_conflict=org_works_in_conflict_zone,
-                currently_lives_in_conflict=cur_lives_in_conflict_zone,
-                cur_name_of_conflict=cur_name_of_conflict_zone,
-                gang_faction=gang_faction,
-                previously_lives_in_conflict=pre_lives_in_conflict_zone,
-                prev_name_of_conflict=pre_name_of_conflict_zone,
-                works_in_conflict=works_in_conflict_zone,
-                lived_experience_of_violence=lived_experience_of_violence,
-                violence_types=violence_types,
-                gang_violence_type=gang_violence_types,
-                random_crime_type=random_violence_types,
-                intimate_violence_type=intimate_violence_types,
-                state_violence_type=state_violence_types,
-                other_violence_type=other_violence_types,
-                discrimination_type=discrimination_type
+                **interview,
+                **demographic,
+                **professional,
+                **conflict,
             )
-            st.success('Datos del entrevistado actualizados correctamente')
+            st.success('Nuevo entrevistado agregado correctamente.')
 
-    if st.button('View Interviewee Data'):
-        data = db.cur.execute("SELECT * FROM interviewee").fetchall()
-        st.write(data)
-        
+    # -----------------------------------------------------------------------
+    # Debug view
+    # -----------------------------------------------------------------------
+    if st.button('Ver datos de entrevistados'):
+        rows = db.cur.execute("SELECT * FROM interviewee").fetchall()
+        st.write(rows)
