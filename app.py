@@ -382,8 +382,7 @@ if st.session_state.get('authentication_status'):
 
         all_fields = {**interview, **demographic, **professional, **conflict}
         for k, v in all_fields.items():
-            if isinstance(v, list):
-                st.error(f"List found in field: {k} = {v}")
+            print(f"{k}: {v}, {type(v)}")  # debug
 
         if st.button('Entregar'):
             db.insert(
