@@ -393,13 +393,12 @@ if st.session_state.get('authentication_status'):
             if not interview.get('case_no'):
                 st.error('Por favor ingrese el número de caso.')
                 st.stop()
-            
-            if st.button('Entregar'):
-                try:
-                    db.insert('interviewee', user=name_of_user, **interview, **demographic, **professional, **conflict)
-                    st.success('Nuevo entrevistado agregado correctamente.')
-                except Exception as e:
-                    st.error(str(e))
+
+            try:
+                db.insert('interviewee', user=name_of_user, **interview, **demographic, **professional, **conflict)
+                st.success('Nuevo entrevistado agregado correctamente.')
+            except Exception as e:
+                st.error(str(e))
 
 
     # -----------------------------------------------------------------------
