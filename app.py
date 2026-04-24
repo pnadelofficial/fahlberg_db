@@ -171,6 +171,9 @@ def render_interview_details(defaults=None):
         interviewer = [v for v in interviewer if v != 'Otro'] + ([custom] if custom else [])
     result['interviewer'] = ', '.join(dict.fromkeys(interviewer))  # deduplicate, preserve order
 
+    result['date'] = str(result['date'])  # convert datetime.date to string
+    result['partial_consent'] = result['partial_consent'] or ''  # convert None to empty string
+
     return result
 
 
