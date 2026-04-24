@@ -380,6 +380,11 @@ if st.session_state.get('authentication_status'):
         with st.expander('Ha vivido experiencias de violencia'):
             conflict = render_conflict_and_violence(key_suffix='_add')
 
+        all_fields = {**interview, **demographic, **professional, **conflict}
+        for k, v in all_fields.items():
+            if isinstance(v, list):
+                st.error(f"List found in field: {k} = {v}")
+
         if st.button('Entregar'):
             db.insert(
                 'interviewee',
