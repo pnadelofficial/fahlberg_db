@@ -11,8 +11,15 @@ class DatabaseManager:
         self.cur = self.conn.cursor()
 
     def _push_to_remote(self):
-        """Commits and pushes db.sql to the remote GitHub repo after every write."""
         try:
+            subprocess.run(
+                ['git', '-C', self.repo_dir, 'config', 'user.email', 'app@fahlberg'],
+                check=True, capture_output=True
+            )
+            subprocess.run(
+                ['git', '-C', self.repo_dir, 'config', 'user.name', 'Fahlberg App'],
+                check=True, capture_output=True
+            )
             subprocess.run(
                 ['git', '-C', self.repo_dir, 'add', 'db.sql'],
                 check=True, capture_output=True
@@ -31,7 +38,7 @@ class DatabaseManager:
                 f"Command: {e.cmd}\n"
                 f"Error: {e.stderr.decode().strip()}"
             )
-
+        
     def insert(self, table, **kwargs):
         columns = ', '.join(kwargs.keys())
         placeholders = ', '.join(['?'] * len(kwargs))
