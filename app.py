@@ -344,6 +344,7 @@ if st.session_state.get('authentication_status'):
             st.error('No hay datos en la base de datos. Por favor, agregue un nuevo entrevistado primero.')
             st.stop()
 
+        print(case_nos)
         selected = st.selectbox('Número de caso', case_nos, format_func=lambda x: x[0])
         case_no  = selected[0]
         data     = fetch_row_as_dict(db, case_no)
