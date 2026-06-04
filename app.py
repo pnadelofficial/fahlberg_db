@@ -345,9 +345,9 @@ if st.session_state.get('authentication_status'):
             st.stop()
 
         print(case_nos, case_nos[0], type(case_nos), type(case_nos[0]))
-        selected = st.selectbox('Número de caso', case_nos, format_func=lambda x: x[0])
-        case_no  = selected[0]
-        data     = fetch_row_as_dict(db, case_no)
+        selected = st.selectbox('Número de caso', [x[0] for x in case_nos]) #, format_func=lambda x: x[0])
+        # case_no  = selected[0]
+        data     = fetch_row_as_dict(db, selected)
 
         if not data:
             st.error('No se encontraron datos para este número de caso.')
