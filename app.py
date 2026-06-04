@@ -3,6 +3,7 @@ from sql_utils import DatabaseManager
 from auth_utils import Authentication, setup_submodule
 from datetime import datetime
 import os
+import pandas as pd
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -363,7 +364,7 @@ if st.session_state.get('authentication_status'):
 
             if st.button('Actualizar'):
                 try:
-                    db.update('interviewee', case_no, **{k: v for k, v in {**interview, **demographic, **professional, **conflict}.items() if k != 'case_no'})
+                    db.update('interviewee', selected, **{k: v for k, v in {**interview, **demographic, **professional, **conflict}.items() if k != 'case_no'})
                     st.success('Datos del entrevistado actualizados correctamente.')
                 except Exception as e:
                     st.error(str(e))
@@ -407,4 +408,13 @@ if st.session_state.get('authentication_status'):
     # -----------------------------------------------------------------------
     if st.button('Ver datos de entrevistados'):
         rows = db.cur.execute("SELECT * FROM interviewee").fetchall()
-        st.write(rows)
+        df = pd.DataFrame(rows, columns=[col[0] for col in db.cur.description])
+        st.dataframe(df)
+        # download as csv
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="Descargar datos como CSV",
+            data=csv,
+            file_name='entrevistados.csv',
+            mime='text/csv',
+        )
