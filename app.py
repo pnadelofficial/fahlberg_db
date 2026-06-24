@@ -34,16 +34,16 @@ ACTIVITY_TYPES  = [
     'Redes y plataformas', 'Otro',
 ]
 VIOLENCE_TYPES  = ['Violencia de pandillas', 'Delitos comunes', 'Violencia sexual', 'Violencia estatal', 'Otro']
-GANG_VIOLENCE   = ['Desplazamiento forzado', 'Extorsión', 'Reclutamiento', 'Agresión sexual', 'Otro']
+GANG_VIOLENCE   = ['Desplazamiento forzado', 'Extorsión', 'Reclutamiento', 'Agresión sexual', 'Asesinato', 'Amenazas', 'Desaparición', 'Otro']
 RANDOM_VIOLENCE = ['Robo a mano armada', 'Robo sin arma', 'Secuestro', 'Hurto', 'Invasión en la casa']
 INTIMATE_VIOLENCE = [
-    'Agresión sexual', 'Violencia de pareja / física', 'Violencia emocional de una pareja',
+    'Violencia sexual', 'Violencia de pareja/física', 'Violencia emocional de una pareja',
     'Violencia contra personas LGBTQ', 'Acoso y cosificación', 'Otro',
 ]
 STATE_VIOLENCE  = [
     'Miedo a la detención', 'Detención arbitraria de familiares cercanos', 'Violencia policial',
     'Conflictos armados de la policia en la colonia', 'Violencia en prisión', 'Represión política',
-    'Allanamiento de morada', 'Llamada anónima', 'Intimidación de policíales o militares',
+    'Allanamiento de morada (orden de un juez)', 'Llamada anónima (denuncia)', 'Intimidación de policíales o militares',
     'Acoso de policiales o militares', 'Otro',
 ]
 DISCRIMINATION_TYPES = [
@@ -89,6 +89,10 @@ def render_violence_subfields(selected_types, defaults=None, key_suffix=""):
         sel = multiselect_with_defaults(
             'Tipo de violencia de pandillas', GANG_VIOLENCE,
             defaults.get('gang_violence_type', ''), key=f'gang{key_suffix}')
+        if 'Otro' in sel:
+            otro = st.text_input('Especifique otro tipo de violencia de pandillas',
+                                 key=f'gang_otro{key_suffix}')
+            sel = [v for v in sel if v != 'Otro'] + ([otro] if otro else [])
         results['gang_violence_type'] = ', '.join(sel)
 
     if 'Delitos comunes' in selected_types:
@@ -101,12 +105,20 @@ def render_violence_subfields(selected_types, defaults=None, key_suffix=""):
         sel = multiselect_with_defaults(
             'Tipo de violencia íntima', INTIMATE_VIOLENCE,
             defaults.get('intimate_violence_type', ''), key=f'intimate{key_suffix}')
+        if 'Otro' in sel:
+            otro = st.text_input('Especifique otro tipo de violencia íntima',
+                                 key=f'intimate_otro{key_suffix}')
+            sel = [v for v in sel if v != 'Otro'] + ([otro] if otro else [])
         results['intimate_violence_type'] = ', '.join(sel)
 
     if 'Violencia estatal' in selected_types:
         sel = multiselect_with_defaults(
             'Tipo de violencia estatal', STATE_VIOLENCE,
             defaults.get('state_violence_type', ''), key=f'state{key_suffix}')
+        if 'Otro' in sel:
+            otro = st.text_input('Especifique otro tipo de violencia estatal',
+                                 key=f'state_otro{key_suffix}')
+            sel = [v for v in sel if v != 'Otro'] + ([otro] if otro else [])
         results['state_violence_type'] = ', '.join(sel)
 
     if 'Otro' in selected_types:
@@ -131,7 +143,7 @@ def fetch_row_as_dict(db, case_no):
 # Form sections  (return dicts so callers can collect all fields cleanly)
 # ---------------------------------------------------------------------------
 
-def render_interview_details(defaults=None):
+def render_interview_details(defaults=None, key_suffix=''):
     d = defaults or {}
     result = {}
 
@@ -157,7 +169,7 @@ def render_interview_details(defaults=None):
     past_dates = []
     for i in range(past_interviews):
         default_date = datetime.strptime(saved_dates[i], '%Y-%m-%d').date() if i < len(saved_dates) else datetime.today()
-        past_dates.append(st.date_input(f'Fecha de entrevista {i+1}', key=f'past_date_{i}', value=default_date))
+        past_dates.append(st.date_input(f'Fecha de entrevista {i+1}', key=f'past_date_{i}{key_suffix}', value=default_date))
     result['past_dates'] = ', '.join(str(d) for d in past_dates)
 
     result['your_name'] = st.selectbox(
@@ -178,7 +190,7 @@ def render_interview_details(defaults=None):
     return result
 
 
-def render_demographic_info(defaults=None):
+def render_demographic_info(defaults=None, key_suffix=''):
     d = defaults or {}
     result = {}
     result['age_range'] = st.selectbox(
@@ -187,17 +199,23 @@ def render_demographic_info(defaults=None):
     result['gender'] = st.selectbox(
         'Género', GENDERS,
         index=GENDERS.index(d['gender']) if d.get('gender') in GENDERS else 0)
-    result['country'] = ', '.join(
-        multiselect_with_defaults('País', COUNTRIES, d.get('country', '')))
+    country_sel = multiselect_with_defaults('País', COUNTRIES, d.get('country', ''))
+    if 'Otro' in country_sel:
+        otro = st.text_input('Especifique otro país', key=f'country_otro{key_suffix}')
+        country_sel = [v for v in country_sel if v != 'Otro'] + ([otro] if otro else [])
+    result['country'] = ', '.join(country_sel)
     return result
 
 
-def render_professional_info(defaults=None):
+def render_professional_info(defaults=None, key_suffix=''):
     d = defaults or {}
     result = {}
 
-    result['profession_type'] = ', '.join(
-        multiselect_with_defaults('Tipo de profesiones', PROFESSION_TYPES, d.get('profession_type', '')))
+    prof_sel = multiselect_with_defaults('Tipo de profesiones', PROFESSION_TYPES, d.get('profession_type', ''))
+    if 'Otro' in prof_sel:
+        otro = st.text_input('Especifique otro tipo de profesión', key=f'profession_otro{key_suffix}')
+        prof_sel = [v for v in prof_sel if v != 'Otro'] + ([otro] if otro else [])
+    result['profession_type'] = ', '.join(prof_sel)
     result['professional_title'] = st.text_input('Titulo profesional', value=d.get('professional_title', ''))
     st.divider()
 
@@ -257,9 +275,12 @@ def render_conflict_and_violence(defaults=None, key_suffix=""):
         result['cur_name_of_conflict'] = st.text_input(
             'Nombre de la zona de conflicto actual', value=d.get('cur_name_of_conflict', ''))
         gf = d.get('gang_faction', '')
-        result['gang_faction'] = st.selectbox(
-            'Facción de pandillas', GANG_FACTIONS,
-            index=GANG_FACTIONS.index(gf) if gf in GANG_FACTIONS else 0)
+        gf_sel = multiselect_with_defaults('Facción de pandillas', GANG_FACTIONS, gf,
+                                           key=f'gang_faction{key_suffix}')
+        if 'Otro' in gf_sel:
+            otro = st.text_input('Especifique otra facción', key=f'gang_faction_otro{key_suffix}')
+            gf_sel = [v for v in gf_sel if v != 'Otro'] + ([otro] if otro else [])
+        result['gang_faction'] = ', '.join(gf_sel)
         st.divider()
 
     # Previous conflict zone
@@ -318,6 +339,10 @@ if st.session_state.get('submodule_setup') is None:
 config_path = os.path.join('sensitive_data_for_fahlberg_interview_db', 'config.yaml')
 db_path     = os.path.join('sensitive_data_for_fahlberg_interview_db', 'db.sql')
 
+for _key in ['GITHUB_TOKEN', 'GITHUB_REPO', 'GITHUB_BRANCH', 'GITHUB_FILE_PATH']:
+    if _key in st.secrets:
+        os.environ[_key] = st.secrets[_key]
+
 st.title('Base de datos de entrevistas de Fahlberg')
 
 auth = Authentication(config_path)
@@ -354,13 +379,13 @@ if st.session_state.get('authentication_status'):
             st.error('No se encontraron datos para este número de caso.')
         else:
             with st.expander('Detalles de la entrevista'):
-                interview = render_interview_details(data)
+                interview = render_interview_details(data, key_suffix=f'_update_{selected}')
             with st.expander('Información demográfica'):
-                demographic = render_demographic_info(data)
+                demographic = render_demographic_info(data, key_suffix=f'_update_{selected}')
             with st.expander('Información profesional'):
-                professional = render_professional_info(data)
+                professional = render_professional_info(data, key_suffix=f'_update_{selected}')
             with st.expander('Ha vivido experiencias de violencia'):
-                conflict = render_conflict_and_violence(data, key_suffix='_update')
+                conflict = render_conflict_and_violence(data, key_suffix=f'_update_{selected}')
 
             if st.button('Actualizar'):
                 try:
@@ -376,11 +401,11 @@ if st.session_state.get('authentication_status'):
         st.subheader('Agregar nuevo entrevistado')
 
         with st.expander('Detalles de la entrevista'):
-            interview = render_interview_details()
+            interview = render_interview_details(key_suffix='_add')
         with st.expander('Información demográfica'):
-            demographic = render_demographic_info()
+            demographic = render_demographic_info(key_suffix='_add')
         with st.expander('Información profesional'):
-            professional = render_professional_info()
+            professional = render_professional_info(key_suffix='_add')
         with st.expander('Ha vivido experiencias de violencia'):
             conflict = render_conflict_and_violence(key_suffix='_add')
 
