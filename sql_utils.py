@@ -44,6 +44,11 @@ class DatabaseManager:
             'branch': self._branch,
         }
         put_resp = requests.put(url, headers=headers, json=payload)
+        if put_resp.status_code == 409:
+            get_resp = requests.get(url, headers=headers, params={'ref': self._branch})
+            if get_resp.status_code == 200:
+                payload['sha'] = get_resp.json()['sha']
+                put_resp = requests.put(url, headers=headers, json=payload)
         if put_resp.status_code not in (200, 201):
             msg = put_resp.json().get('message', put_resp.text)
             raise Exception(f"GitHub API error pushing file ({put_resp.status_code}): {msg}")

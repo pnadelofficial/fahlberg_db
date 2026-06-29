@@ -89,10 +89,12 @@ def render_violence_subfields(selected_types, defaults=None, key_suffix=""):
         sel = multiselect_with_defaults(
             'Tipo de violencia de pandillas', GANG_VIOLENCE,
             defaults.get('gang_violence_type', ''), key=f'gang{key_suffix}')
-        if 'Otro' in sel:
+        otro_existing = next((v for v in sel if v.startswith('Otro: ')), None)
+        if 'Otro' in sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
             otro = st.text_input('Especifique otro tipo de violencia de pandillas',
-                                 key=f'gang_otro{key_suffix}')
-            sel = [v for v in sel if v != 'Otro'] + ([otro] if otro else [])
+                                 value=default_text, key=f'gang_otro{key_suffix}')
+            sel = [v for v in sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {otro}'] if otro else ['Otro'])
         results['gang_violence_type'] = ', '.join(sel)
 
     if 'Delitos comunes' in selected_types:
@@ -105,20 +107,24 @@ def render_violence_subfields(selected_types, defaults=None, key_suffix=""):
         sel = multiselect_with_defaults(
             'Tipo de violencia íntima', INTIMATE_VIOLENCE,
             defaults.get('intimate_violence_type', ''), key=f'intimate{key_suffix}')
-        if 'Otro' in sel:
+        otro_existing = next((v for v in sel if v.startswith('Otro: ')), None)
+        if 'Otro' in sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
             otro = st.text_input('Especifique otro tipo de violencia íntima',
-                                 key=f'intimate_otro{key_suffix}')
-            sel = [v for v in sel if v != 'Otro'] + ([otro] if otro else [])
+                                 value=default_text, key=f'intimate_otro{key_suffix}')
+            sel = [v for v in sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {otro}'] if otro else ['Otro'])
         results['intimate_violence_type'] = ', '.join(sel)
 
     if 'Violencia estatal' in selected_types:
         sel = multiselect_with_defaults(
             'Tipo de violencia estatal', STATE_VIOLENCE,
             defaults.get('state_violence_type', ''), key=f'state{key_suffix}')
-        if 'Otro' in sel:
+        otro_existing = next((v for v in sel if v.startswith('Otro: ')), None)
+        if 'Otro' in sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
             otro = st.text_input('Especifique otro tipo de violencia estatal',
-                                 key=f'state_otro{key_suffix}')
-            sel = [v for v in sel if v != 'Otro'] + ([otro] if otro else [])
+                                 value=default_text, key=f'state_otro{key_suffix}')
+            sel = [v for v in sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {otro}'] if otro else ['Otro'])
         results['state_violence_type'] = ', '.join(sel)
 
     if 'Otro' in selected_types:
@@ -179,13 +185,15 @@ def render_interview_details(defaults=None, key_suffix=''):
     saved_interviewers = d.get('interviewer', '').split(', ') if d.get('interviewer') else []
     all_interviewers = list(dict.fromkeys(INTERVIEWERS + saved_interviewers))
     interviewer = st.multiselect('Entrevistador', all_interviewers, default=saved_interviewers)
-    if 'Otro' in interviewer:
-        custom = st.text_input('Otro Entrevistador')
-        interviewer = [v for v in interviewer if v != 'Otro'] + ([custom] if custom else [])
+    otro_existing = next((v for v in interviewer if v.startswith('Otro: ')), None)
+    if 'Otro' in interviewer or otro_existing:
+        default_text = otro_existing[6:] if otro_existing else ''
+        custom = st.text_input('Otro Entrevistador', value=default_text)
+        interviewer = [v for v in interviewer if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {custom}'] if custom else ['Otro'])
     result['interviewer'] = ', '.join(dict.fromkeys(interviewer))  # deduplicate, preserve order
 
     result['date'] = str(result['date'])  # convert datetime.date to string
-    result['partial_consent'] = str(result['partial_consent']) or ''  # convert None to empty string
+    result['partial_consent'] = result['partial_consent'] or ''
 
     return result
 
@@ -196,13 +204,22 @@ def render_demographic_info(defaults=None, key_suffix=''):
     result['age_range'] = st.selectbox(
         'Rango de edad', AGE_RANGES,
         index=AGE_RANGES.index(d['age_range']) if d.get('age_range') in AGE_RANGES else 0)
-    result['gender'] = st.selectbox(
-        'Género', GENDERS,
-        index=GENDERS.index(d['gender']) if d.get('gender') in GENDERS else 0)
+    gender_saved = d.get('gender', '')
+    gender_is_otro = gender_saved == 'Desconocido o otro' or gender_saved.startswith('Desconocido o otro: ')
+    gender_index = (GENDERS.index('Desconocido o otro') if gender_is_otro
+                    else (GENDERS.index(gender_saved) if gender_saved in GENDERS else 0))
+    gender_val = st.selectbox('Género', GENDERS, index=gender_index)
+    if gender_val == 'Desconocido o otro':
+        saved_text = gender_saved[len('Desconocido o otro: '):] if gender_saved.startswith('Desconocido o otro: ') else ''
+        typed = st.text_input('Especifique género', value=saved_text, key=f'gender_otro{key_suffix}')
+        gender_val = f'Desconocido o otro: {typed}' if typed else 'Desconocido o otro'
+    result['gender'] = gender_val
     country_sel = multiselect_with_defaults('País', COUNTRIES, d.get('country', ''))
-    if 'Otro' in country_sel:
-        otro = st.text_input('Especifique otro país', key=f'country_otro{key_suffix}')
-        country_sel = [v for v in country_sel if v != 'Otro'] + ([otro] if otro else [])
+    otro_existing = next((v for v in country_sel if v.startswith('Otro: ')), None)
+    if 'Otro' in country_sel or otro_existing:
+        default_text = otro_existing[6:] if otro_existing else ''
+        typed = st.text_input('Especifique otro país', value=default_text, key=f'country_otro{key_suffix}')
+        country_sel = [v for v in country_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
     result['country'] = ', '.join(country_sel)
     return result
 
@@ -212,9 +229,11 @@ def render_professional_info(defaults=None, key_suffix=''):
     result = {}
 
     prof_sel = multiselect_with_defaults('Tipo de profesiones', PROFESSION_TYPES, d.get('profession_type', ''))
-    if 'Otro' in prof_sel:
-        otro = st.text_input('Especifique otro tipo de profesión', key=f'profession_otro{key_suffix}')
-        prof_sel = [v for v in prof_sel if v != 'Otro'] + ([otro] if otro else [])
+    otro_existing = next((v for v in prof_sel if v.startswith('Otro: ')), None)
+    if 'Otro' in prof_sel or otro_existing:
+        default_text = otro_existing[6:] if otro_existing else ''
+        typed = st.text_input('Especifique otro tipo de profesión', value=default_text, key=f'profession_otro{key_suffix}')
+        prof_sel = [v for v in prof_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
     result['profession_type'] = ', '.join(prof_sel)
     result['professional_title'] = st.text_input('Titulo profesional', value=d.get('professional_title', ''))
     st.divider()
@@ -226,9 +245,16 @@ def render_professional_info(defaults=None, key_suffix=''):
     if works_gov:
         result['geographic_level'] = ', '.join(
             multiselect_with_defaults('Nivel geográfico', GEO_LEVELS, d.get('geographic_level', '')))
-        result['sector'] = st.selectbox(
-            'Sector', SECTORS,
-            index=SECTORS.index(d['sector']) if d.get('sector') in SECTORS else 0)
+        sector_saved = d.get('sector', '')
+        sector_is_otro = sector_saved == 'Otro' or sector_saved.startswith('Otro: ')
+        sector_index = (SECTORS.index('Otro') if sector_is_otro
+                        else (SECTORS.index(sector_saved) if sector_saved in SECTORS else 0))
+        sector_val = st.selectbox('Sector', SECTORS, index=sector_index)
+        if sector_val == 'Otro':
+            saved_text = sector_saved[len('Otro: '):] if sector_saved.startswith('Otro: ') else ''
+            typed = st.text_input('Especifique otro sector', value=saved_text, key=f'sector_otro{key_suffix}')
+            sector_val = f'Otro: {typed}' if typed else 'Otro'
+        result['sector'] = sector_val
     st.divider()
 
     works_org = st.checkbox('Trabaja para una organización', value=bool(d.get('works_in_org', False)))
@@ -241,8 +267,13 @@ def render_professional_info(defaults=None, key_suffix=''):
     result['types_of_violence'] = ''
     result['org_works_in_conflict'] = False
     if works_org:
-        result['country_of_organization'] = ', '.join(
-            multiselect_with_defaults('País de la Organización', COUNTRIES, d.get('country_of_organization', '')))
+        country_org_sel = multiselect_with_defaults('País de la Organización', COUNTRIES, d.get('country_of_organization', ''))
+        otro_existing = next((v for v in country_org_sel if v.startswith('Otro: ')), None)
+        if 'Otro' in country_org_sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
+            typed = st.text_input('Especifique otro país de la organización', value=default_text, key=f'country_org_otro{key_suffix}')
+            country_org_sel = [v for v in country_org_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
+        result['country_of_organization'] = ', '.join(country_org_sel)
         result['geographic_reach'] = ', '.join(
             multiselect_with_defaults('Alcance geográfico', GEO_LEVELS, d.get('geographic_reach', '')))
         result['years_of_operation'] = st.selectbox(
@@ -251,10 +282,20 @@ def render_professional_info(defaults=None, key_suffix=''):
         result['formality'] = st.selectbox(
             'Formalidad', FORMALITIES,
             index=FORMALITIES.index(d['formality']) if d.get('formality') in FORMALITIES else 0)
-        result['types_of_activities'] = ', '.join(
-            multiselect_with_defaults('Tipos de actividades', ACTIVITY_TYPES, d.get('types_of_activities', '')))
-        result['types_of_violence'] = ', '.join(
-            multiselect_with_defaults('Tipos de violencia', VIOLENCE_TYPES, d.get('types_of_violence', '')))
+        act_sel = multiselect_with_defaults('Tipos de actividades', ACTIVITY_TYPES, d.get('types_of_activities', ''))
+        otro_existing = next((v for v in act_sel if v.startswith('Otro: ')), None)
+        if 'Otro' in act_sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
+            typed = st.text_input('Especifique otro tipo de actividad', value=default_text, key=f'activities_otro{key_suffix}')
+            act_sel = [v for v in act_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
+        result['types_of_activities'] = ', '.join(act_sel)
+        org_vio_sel = multiselect_with_defaults('Tipos de violencia', VIOLENCE_TYPES, d.get('types_of_violence', ''))
+        otro_existing = next((v for v in org_vio_sel if v.startswith('Otro: ')), None)
+        if 'Otro' in org_vio_sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
+            typed = st.text_input('Especifique otro tipo de violencia', value=default_text, key=f'org_violence_otro{key_suffix}')
+            org_vio_sel = [v for v in org_vio_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
+        result['types_of_violence'] = ', '.join(org_vio_sel)
         result['org_works_in_conflict'] = st.checkbox(
             'La organización trabaja en zonas de conflicto', value=bool(d.get('org_works_in_conflict', False)))
 
@@ -277,9 +318,11 @@ def render_conflict_and_violence(defaults=None, key_suffix=""):
         gf = d.get('gang_faction', '')
         gf_sel = multiselect_with_defaults('Facción de pandillas', GANG_FACTIONS, gf,
                                            key=f'gang_faction{key_suffix}')
-        if 'Otro' in gf_sel:
-            otro = st.text_input('Especifique otra facción', key=f'gang_faction_otro{key_suffix}')
-            gf_sel = [v for v in gf_sel if v != 'Otro'] + ([otro] if otro else [])
+        otro_existing = next((v for v in gf_sel if v.startswith('Otro: ')), None)
+        if 'Otro' in gf_sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
+            typed = st.text_input('Especifique otra facción', value=default_text, key=f'gang_faction_otro{key_suffix}')
+            gf_sel = [v for v in gf_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
         result['gang_faction'] = ', '.join(gf_sel)
         st.divider()
 
@@ -322,9 +365,14 @@ def render_conflict_and_violence(defaults=None, key_suffix=""):
         value=bool(d.get('discrimination_type', '')))
     result['discrimination_type'] = ''
     if faced_discrimination:
-        result['discrimination_type'] = ', '.join(
-            multiselect_with_defaults('Tipo de discriminación', DISCRIMINATION_TYPES,
-                                      d.get('discrimination_type', '')))
+        disc_sel = multiselect_with_defaults('Tipo de discriminación', DISCRIMINATION_TYPES,
+                                             d.get('discrimination_type', ''))
+        otro_existing = next((v for v in disc_sel if v.startswith('Otro: ')), None)
+        if 'Otro' in disc_sel or otro_existing:
+            default_text = otro_existing[6:] if otro_existing else ''
+            typed = st.text_input('Especifique otro tipo de discriminación', value=default_text, key=f'discrimination_otro{key_suffix}')
+            disc_sel = [v for v in disc_sel if v != 'Otro' and not v.startswith('Otro: ')] + ([f'Otro: {typed}'] if typed else ['Otro'])
+        result['discrimination_type'] = ', '.join(disc_sel)
 
     return result
 
@@ -370,7 +418,6 @@ if st.session_state.get('authentication_status'):
             st.error('No hay datos en la base de datos. Por favor, agregue un nuevo entrevistado primero.')
             st.stop()
 
-        print(case_nos, case_nos[0], type(case_nos), type(case_nos[0]))
         selected = st.selectbox('Número de caso', [x[0] for x in case_nos]) #, format_func=lambda x: x[0])
         # case_no  = selected[0]
         data     = fetch_row_as_dict(db, selected)
@@ -410,8 +457,6 @@ if st.session_state.get('authentication_status'):
             conflict = render_conflict_and_violence(key_suffix='_add')
 
         all_fields = {**interview, **demographic, **professional, **conflict}
-        for k, v in all_fields.items():
-            print(f"{k}: {v}, {type(v)}")  # debug
 
         if st.button('Entregar'):
             if not name_of_user:
