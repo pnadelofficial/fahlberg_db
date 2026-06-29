@@ -33,7 +33,7 @@ class Authentication:
     
 def setup_submodule():
     if not platform.processor():
-        github_pat = st.secrets['github']['github_pat']
+        github_pat = st.secrets['GITHUB_TOKEN']
         subprocess.run(["git", "config", "--global", "credential.helper", "store"])
         with open(os.path.expanduser("~/.git-credentials"), "w") as f:
             f.write(f"https://oauth2:{github_pat}@github.com")
